@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <title>Sotuvchi-konsultant Anketasi</title>
 
-<!-- jsPDF (TO‘G‘RI VERSIYA) -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.min.js"></script>
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
 body{
@@ -57,11 +57,77 @@ button{
 <input type="file" id="photo" accept="image/*" required>
 <img id="preview" style="width:120px;margin:10px auto;display:block;border-radius:8px;" />
 
+<div class="section">
+<h3>UMUMIY MA’LUMOTLAR</h3>
 <input name="fullname" placeholder="F.I.Sh" required>
 <input type="date" name="birthdate" required>
-<input name="phone" placeholder="Telefon" required>
+<input name="age" placeholder="Yoshi">
+<input name="citizenship" placeholder="Fuqaroligi">
+<input name="nation" placeholder="Millati">
+<input name="passport" placeholder="Pasport ma’lumotlari">
+<input name="passport_info" placeholder="Berilgan sana va joy">
+<input name="address_permanent" placeholder="Doimiy manzil">
+<input name="address_current" placeholder="Amaldagi manzil">
+<input name="phone" placeholder="Telefon raqami" required>
+<input name="extra_contact" placeholder="Qo‘shimcha aloqa">
+<input name="telegram" placeholder="Telegram / messenjer">
+</div>
 
-<button type="submit">Yuborish</button>
+<div class="section">
+<h3>MA’LUMOTI</h3>
+<input name="education_level" placeholder="Ma’lumoti">
+<input name="education_place" placeholder="Ta’lim muassasasi">
+<input name="speciality" placeholder="Mutaxassisligi">
+<input name="graduation_year" placeholder="Bitirgan yili">
+</div>
+
+<div class="section">
+<h3>OILAVIY HOLATI</h3>
+<input name="marital_status" placeholder="Oilaviy holati">
+<input name="children" placeholder="Farzandlari soni">
+</div>
+
+<div class="section">
+<h3>SOG‘LIG‘I</h3>
+<textarea name="health"></textarea>
+</div>
+
+<div class="section">
+<h3>ISH TAJRIBASI 1</h3>
+<input name="company1" placeholder="Kompaniya nomi">
+<input name="position1" placeholder="Lavozimi">
+<input name="period1" placeholder="Ishlagan muddati">
+<textarea name="tasks1" placeholder="Asosiy vazifalari"></textarea>
+<input name="reason1" placeholder="Ketish sababi">
+</div>
+
+<div class="section">
+<h3>ISH TAJRIBASI 2</h3>
+<input name="company2" placeholder="Kompaniya nomi">
+<input name="position2" placeholder="Lavozimi">
+<input name="period2" placeholder="Ishlagan muddati">
+<textarea name="tasks2" placeholder="Asosiy vazifalari"></textarea>
+<input name="reason2" placeholder="Ketish sababi">
+</div>
+
+<div class="section">
+<h3>SAVDO KO‘NIKMALARI</h3>
+<textarea name="skills"></textarea>
+<textarea name="crm"></textarea>
+</div>
+
+<div class="section">
+<h3>ISH GRAFIKI</h3>
+<input name="schedule">
+</div>
+
+<div class="section">
+<h3>QO‘SHIMCHA</h3>
+<textarea name="recommendations"></textarea>
+<textarea name="expectations"></textarea>
+</div>
+
+<button type="submit">PDF yuklab olish</button>
 
 </form>
 </div>
@@ -82,10 +148,10 @@ photoInput.addEventListener("change", function(){
   }
 });
 
-form.addEventListener("submit", async function(e){
+form.addEventListener("submit", function(e){
   e.preventDefault();
 
-  // 🔥 TO‘G‘RI JS PDF
+  const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
 
   const data = new FormData(form);
@@ -105,6 +171,10 @@ form.addEventListener("submit", async function(e){
 
   for (let [key, value] of data.entries()) {
     if (key !== "photo") {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
       doc.text(`${key}: ${value || "-"}`, 20, y);
       y += 7;
     }
@@ -112,36 +182,7 @@ form.addEventListener("submit", async function(e){
 
   doc.text(`Sana: ${new Date().toLocaleDateString()}`, 20, y + 5);
 
-  // 🔥 EMAILGA YUBORISH
-  const pdfBlob = doc.output("blob");
-  const reader = new FileReader();
-
-  reader.readAsDataURL(pdfBlob);
-
-  reader.onloadend = async function () {
-    const base64data = reader.result.split(',')[1];
-
-    try {
-      const response = await fetch("/.netlify/functions/sendemail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pdfBase64: base64data,
-          fullname: data.get("fullname")
-        })
-      });
-
-      const result = await response.json();
-      console.log("Email result:", result);
-
-      alert("Anketa muvaffaqiyatli yuborildi ✅");
-      doc.save("feliza-anketa.pdf");
-
-    } catch (err) {
-      console.error("Xato:", err);
-      alert("Email yuborishda xatolik ❌");
-    }
-  };
+  doc.save("feliza-anketa.pdf");
 
 });
 
