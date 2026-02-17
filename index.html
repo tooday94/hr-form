@@ -2,6 +2,8 @@
 <html lang="uz">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>Sotuvchi-konsultant Anketasi</title>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -310,7 +312,6 @@ button:disabled{
     
     function updateProgress(){
       let filled = 0;
-    
       inputs.forEach(input => {
         if(input.value.trim() !== ""){
           filled++;
@@ -319,13 +320,8 @@ button:disabled{
     
       const percent = Math.round((filled / inputs.length) * 100);
     
-      if(progressBar){
-        progressBar.style.width = percent + "%";
-      }
-    
-      if(progressText){
-        progressText.innerText = percent + "% to‘ldirildi";
-      }
+      if(progressBar) progressBar.style.width = percent + "%";
+      if(progressText) progressText.innerText = percent + "% to‘ldirildi";
     }
     
     /* ================= SUBMIT ================= */
@@ -333,96 +329,115 @@ button:disabled{
     form.addEventListener("submit", async function(e){
       e.preventDefault();
     
-      // 🔥 Loading start
       submitBtn.disabled = true;
       btnText.innerHTML = '<div class="spinner"></div>';
     
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
       const data = new FormData(form);
+      const get = n => data.get(n) || "-";
     
       let y = 20;
     
-      function addSection(title){
-        if(y > 260){ doc.addPage(); y = 20; }
-        doc.setFont(undefined,"bold");
-        doc.text(title,20,y);
-        y+=8;
-        doc.setFont(undefined,"normal");
-      }
+      /* ===== HEADER ===== */
+      doc.setFillColor(0,0,0);
+      doc.rect(0,0,210,20,"F");
     
-      function addField(label,value){
-        if(y > 270){ doc.addPage(); y = 20; }
-        doc.text(label + ": " + (value || "-"),20,y);
-        y+=7;
-      }
+      doc.setTextColor(255,255,255);
+      doc.setFontSize(14);
+      doc.text("FELIZA HR ANKETA",105,13,{align:"center"});
     
-      doc.setFontSize(16);
-      doc.text("SOTUVCHI-KONSULTANT ANKETASI",20,y);
-      y+=10;
+      doc.setTextColor(0,0,0);
+      y = 30;
     
+      /* ===== FULL NAME ===== */
+      doc.setFontSize(18);
+      doc.setFont(undefined,"bold");
+      doc.text(get("fullname"),20,y);
+      doc.setFont(undefined,"normal");
+      y += 10;
+    
+      /* ===== IMAGE ===== */
       if(preview.src){
         const format = preview.src.includes("png") ? "PNG" : "JPEG";
-        doc.addImage(preview.src, format,150,20,40,40);
+        doc.addImage(preview.src, format,150,30,40,40);
       }
     
-      doc.setFontSize(11);
-      const get = n => data.get(n);
+      function section(title){
+        y += 8;
+        if(y > 260){ doc.addPage(); y = 20; }
+        doc.setDrawColor(0);
+        doc.line(20,y,190,y);
+        y += 8;
+        doc.setFont(undefined,"bold");
+        doc.setFontSize(13);
+        doc.text(title,20,y);
+        doc.setFont(undefined,"normal");
+        y += 8;
+      }
     
-      addSection("UMUMIY MA'LUMOTLAR");
-      addField("F.I.Sh",get("fullname"));
-      addField("Tug'ilgan sana",get("birthdate"));
-      addField("Yoshi",get("age"));
-      addField("Fuqaroligi",get("citizenship"));
-      addField("Millati",get("nation"));
-      addField("Pasport",get("passport"));
-      addField("Pasport info",get("passport_info"));
-      addField("Doimiy manzil",get("address_permanent"));
-      addField("Hozirgi manzil",get("address_current"));
-      addField("Telefon",get("phone"));
-      addField("Qo'shimcha aloqa",get("extra_contact"));
-      addField("Telegram",get("telegram"));
+      function field(label,value){
+        if(y > 270){ doc.addPage(); y = 20; }
+        doc.setFontSize(11);
+        doc.text(label + ":",20,y);
+        doc.text(String(value),80,y);
+        y += 7;
+      }
     
-      addSection("TA'LIM");
-      addField("Ma'lumoti",get("education_level"));
-      addField("Muassasa",get("education_place"));
-      addField("Mutaxassisligi",get("speciality"));
-      addField("Bitirgan yili",get("graduation_year"));
+      section("SHAXSIY MA'LUMOTLAR");
+      field("Tug'ilgan sana",get("birthdate"));
+      field("Yoshi",get("age"));
+      field("Fuqaroligi",get("citizenship"));
+      field("Millati",get("nation"));
+      field("Telefon",get("phone"));
+      field("Telegram",get("telegram"));
+      field("Doimiy manzil",get("address_permanent"));
+      field("Hozirgi manzil",get("address_current"));
     
-      addSection("OILAVIY HOLATI");
-      addField("Holati",get("marital_status"));
-      addField("Farzandlari",get("children"));
+      section("TA'LIM");
+      field("Ma'lumoti",get("education_level"));
+      field("Muassasa",get("education_place"));
+      field("Mutaxassisligi",get("speciality"));
+      field("Bitirgan yili",get("graduation_year"));
     
-      addSection("SOG'LIG'I");
-      addField("Ma'lumot",get("health"));
+      section("OILAVIY HOLATI");
+      field("Holati",get("marital_status"));
+      field("Farzandlari",get("children"));
     
-      addSection("ISH TAJRIBASI 1");
-      addField("Kompaniya",get("company1"));
-      addField("Lavozim",get("position1"));
-      addField("Muddati",get("period1"));
-      addField("Vazifalari",get("tasks1"));
-      addField("Ketish sababi",get("reason1"));
+      section("SOG'LIG'I");
+      field("Ma'lumot",get("health"));
     
-      addSection("ISH TAJRIBASI 2");
-      addField("Kompaniya",get("company2"));
-      addField("Lavozim",get("position2"));
-      addField("Muddati",get("period2"));
-      addField("Vazifalari",get("tasks2"));
-      addField("Ketish sababi",get("reason2"));
+      section("ISH TAJRIBASI 1");
+      field("Kompaniya",get("company1"));
+      field("Lavozim",get("position1"));
+      field("Muddati",get("period1"));
+      field("Vazifalari",get("tasks1"));
+      field("Ketish sababi",get("reason1"));
     
-      addSection("KO'NIKMALAR");
-      addField("Ko'nikmalar",get("skills"));
-      addField("CRM",get("crm"));
+      section("ISH TAJRIBASI 2");
+      field("Kompaniya",get("company2"));
+      field("Lavozim",get("position2"));
+      field("Muddati",get("period2"));
+      field("Vazifalari",get("tasks2"));
+      field("Ketish sababi",get("reason2"));
     
-      addSection("ISH GRAFIKI");
-      addField("Grafik",get("schedule"));
+      section("KO'NIKMALAR");
+      field("Savdo ko'nikmalari",get("skills"));
+      field("CRM",get("crm"));
     
-      addSection("QO'SHIMCHA");
-      addField("Tavsiyalar",get("recommendations"));
-      addField("Kutayotganlari",get("expectations"));
+      section("QO'SHIMCHA");
+      field("Tavsiyalar",get("recommendations"));
+      field("Kutayotganlari",get("expectations"));
     
-      y+=5;
-      doc.text("Sana: "+new Date().toLocaleDateString(),20,y);
+      /* ===== FOOTER ===== */
+      doc.setFontSize(9);
+      doc.setTextColor(120);
+      doc.text(
+        "Yaratilgan sana: " + new Date().toLocaleDateString(),
+        105,
+        290,
+        {align:"center"}
+      );
     
       try{
     
@@ -454,6 +469,6 @@ button:disabled{
     
     });
     </script>
-    
+        
 </body>
 </html>
