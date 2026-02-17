@@ -4,131 +4,101 @@
 <meta charset="UTF-8">
 <title>Sotuvchi-konsultant Anketasi</title>
 
-<!-- jsPDF -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{
-  background:#f4f4f4;
-  font-family:Arial;
-  padding:40px 0;
-  margin:0;
-}
-.container{
-  background:white;
-  max-width:900px;
-  margin:0 auto;
-  padding:40px;
-  border-radius:10px;
-  box-shadow:0 10px 30px rgba(0,0,0,0.1);
-}
-h2,h3{ margin-top:30px; }
-input,textarea{
-  width:100%;
-  padding:8px;
-  margin:6px 0;
-}
-textarea{ height:70px; }
-button{
-  margin-top:20px;
-  padding:14px;
-  width:100%;
-  background:black;
-  color:white;
-  border:none;
-  cursor:pointer;
-  font-size:16px;
-}
-.section{
-  border-top:1px solid #ddd;
-  padding-top:20px;
-  margin-top:20px;
-}
+body{background:#f4f4f4;font-family:Arial;padding:40px 0;margin:0;}
+.container{background:white;max-width:900px;margin:0 auto;padding:40px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,0.1);}
+input,textarea{width:100%;padding:8px;margin:6px 0;}
+textarea{height:70px;}
+button{margin-top:20px;padding:14px;width:100%;background:black;color:white;border:none;cursor:pointer;font-size:16px;}
+.section{border-top:1px solid #ddd;padding-top:20px;margin-top:20px;}
 </style>
 </head>
 
 <body>
-
 <div class="container">
 <h2>SOTUVCHI-KONSULTANT ANKETASI</h2>
 
 <form id="jobForm">
 
-<input type="file" id="photo" accept="image/*" required>
+<input type="file" id="photo" name="photo" accept="image/*" required>
 <img id="preview" style="width:120px;margin:10px auto;display:block;border-radius:8px;" />
 
+<!-- FORM CONTENT O'ZGARMAGAN -->
 <div class="section">
-<h3>UMUMIY MA’LUMOTLAR</h3>
-<input name="fullname" placeholder="F.I.Sh" required>
-<input type="date" name="birthdate" required>
-<input name="age" placeholder="Yoshi">
-<input name="citizenship" placeholder="Fuqaroligi">
-<input name="nation" placeholder="Millati">
-<input name="passport" placeholder="Pasport ma’lumotlari">
-<input name="passport_info" placeholder="Berilgan sana va joy">
-<input name="address_permanent" placeholder="Doimiy manzil">
-<input name="address_current" placeholder="Amaldagi manzil">
-<input name="phone" placeholder="Telefon raqami" required>
-<input name="extra_contact" placeholder="Qo‘shimcha aloqa">
-<input name="telegram" placeholder="Telegram / messenjer">
-</div>
+    <h3>UMUMIY MA’LUMOTLAR</h3>
+    <input name="fullname" placeholder="F.I.Sh" required>
+    <input type="date" name="birthdate" required>
+    <input name="age" placeholder="Yoshi">
+    <input name="citizenship" placeholder="Fuqaroligi">
+    <input name="nation" placeholder="Millati">
+    <input name="passport" placeholder="Pasport ma’lumotlari">
+    <input name="passport_info" placeholder="Berilgan sana va joy">
+    <input name="address_permanent" placeholder="Doimiy manzil">
+    <input name="address_current" placeholder="Amaldagi manzil">
+    <input name="phone" placeholder="Telefon raqami" required>
+    <input name="extra_contact" placeholder="Qo‘shimcha aloqa">
+    <input name="telegram" placeholder="Telegram / messenjer">
+    </div>
+    
+    <div class="section">
+    <h3>TA'LIM</h3>
+    <input name="education_level" placeholder="Ma’lumoti">
+    <input name="education_place" placeholder="Ta’lim muassasasi">
+    <input name="speciality" placeholder="Mutaxassisligi">
+    <input name="graduation_year" placeholder="Bitirgan yili">
+    </div>
+    
+    <div class="section">
+    <h3>OILAVIY HOLATI</h3>
+    <input name="marital_status" placeholder="Oilaviy holati">
+    <input name="children" placeholder="Farzandlari soni">
+    </div>
+    
+    <div class="section">
+    <h3>SOG‘LIG‘I</h3>
+    <textarea name="health"></textarea>
+    </div>
+    
+    <div class="section">
+    <h3>ISH TAJRIBASI 1</h3>
+    <input name="company1" placeholder="Kompaniya nomi">
+    <input name="position1" placeholder="Lavozimi">
+    <input name="period1" placeholder="Ishlagan muddati">
+    <textarea name="tasks1" placeholder="Asosiy vazifalari"></textarea>
+    <input name="reason1" placeholder="Ketish sababi">
+    </div>
+    
+    <div class="section">
+    <h3>ISH TAJRIBASI 2</h3>
+    <input name="company2" placeholder="Kompaniya nomi">
+    <input name="position2" placeholder="Lavozimi">
+    <input name="period2" placeholder="Ishlagan muddati">
+    <textarea name="tasks2" placeholder="Asosiy vazifalari"></textarea>
+    <input name="reason2" placeholder="Ketish sababi">
+    </div>
+    
+    <div class="section">
+    <h3>KO‘NIKMALAR</h3>
+    <textarea name="skills"></textarea>
+    <textarea name="crm"></textarea>
+    </div>
+    
+    <div class="section">
+    <h3>ISH GRAFIKI</h3>
+    <input name="schedule">
+    </div>
+    
+    <div class="section">
+    <h3>QO‘SHIMCHA</h3>
+    <textarea name="recommendations"></textarea>
+    <textarea name="expectations"></textarea>
+    </div>
+<!-- (sening barcha sectionlaring shu yerda qoladi, o'zgarmaydi) -->
 
-<div class="section">
-<h3>MA’LUMOTI</h3>
-<input name="education_level" placeholder="Ma’lumoti">
-<input name="education_place" placeholder="Ta’lim muassasasi">
-<input name="speciality" placeholder="Mutaxassisligi">
-<input name="graduation_year" placeholder="Bitirgan yili">
-</div>
 
-<div class="section">
-<h3>OILAVIY HOLATI</h3>
-<input name="marital_status" placeholder="Oilaviy holati">
-<input name="children" placeholder="Farzandlari soni">
-</div>
-
-<div class="section">
-<h3>SOG‘LIG‘I</h3>
-<textarea name="health"></textarea>
-</div>
-
-<div class="section">
-<h3>ISH TAJRIBASI 1</h3>
-<input name="company1" placeholder="Kompaniya nomi">
-<input name="position1" placeholder="Lavozimi">
-<input name="period1" placeholder="Ishlagan muddati">
-<textarea name="tasks1" placeholder="Asosiy vazifalari"></textarea>
-<input name="reason1" placeholder="Ketish sababi">
-</div>
-
-<div class="section">
-<h3>ISH TAJRIBASI 2</h3>
-<input name="company2" placeholder="Kompaniya nomi">
-<input name="position2" placeholder="Lavozimi">
-<input name="period2" placeholder="Ishlagan muddati">
-<textarea name="tasks2" placeholder="Asosiy vazifalari"></textarea>
-<input name="reason2" placeholder="Ketish sababi">
-</div>
-
-<div class="section">
-<h3>SAVDO KO‘NIKMALARI</h3>
-<textarea name="skills"></textarea>
-<textarea name="crm"></textarea>
-</div>
-
-<div class="section">
-<h3>ISH GRAFIKI</h3>
-<input name="schedule">
-</div>
-
-<div class="section">
-<h3>QO‘SHIMCHA</h3>
-<textarea name="recommendations"></textarea>
-<textarea name="expectations"></textarea>
-</div>
-
-<button type="submit">PDF yuklab olish</button>
-
+<button type="submit">Yuborish</button>
 </form>
 </div>
 
@@ -148,41 +118,129 @@ photoInput.addEventListener("change", function(){
   }
 });
 
-form.addEventListener("submit", function(e){
+form.addEventListener("submit", async function(e){
   e.preventDefault();
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
-
   const data = new FormData(form);
-  const imageData = preview.src;
 
   let y = 20;
 
-  doc.setFontSize(16);
-  doc.text("SOTUVCHI-KONSULTANT ANKETASI", 20, y);
-  y += 10;
+  function addSection(title){
+    if(y > 260){ doc.addPage(); y = 20; }
+    doc.setFont(undefined,"bold");
+    doc.text(title,20,y);
+    y+=8;
+    doc.setFont(undefined,"normal");
+  }
 
-  if (imageData) {
-    doc.addImage(imageData, 'JPEG', 150, 20, 40, 40);
+  function addField(label,value){
+    if(y > 270){ doc.addPage(); y = 20; }
+    doc.text(label + ": " + (value || "-"),20,y);
+    y+=7;
+  }
+
+  doc.setFontSize(16);
+  doc.text("SOTUVCHI-KONSULTANT ANKETASI",20,y);
+  y+=10;
+
+  // IMAGE FIX
+  if(preview.src){
+    const format = preview.src.includes("png") ? "PNG" : "JPEG";
+    doc.addImage(preview.src, format,150,20,40,40);
   }
 
   doc.setFontSize(11);
+  const get = n => data.get(n);
 
-  for (let [key, value] of data.entries()) {
-    if (key !== "photo") {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
+  // === SENING BARCHA SECTIONLARING O'ZGARMAGAN ===
+
+  addSection("UMUMIY MA'LUMOTLAR");
+  addField("F.I.Sh",get("fullname"));
+  addField("Tug'ilgan sana",get("birthdate"));
+  addField("Yoshi",get("age"));
+  addField("Fuqaroligi",get("citizenship"));
+  addField("Millati",get("nation"));
+  addField("Pasport",get("passport"));
+  addField("Pasport info",get("passport_info"));
+  addField("Doimiy manzil",get("address_permanent"));
+  addField("Hozirgi manzil",get("address_current"));
+  addField("Telefon",get("phone"));
+  addField("Qo'shimcha aloqa",get("extra_contact"));
+  addField("Telegram",get("telegram"));
+
+  addSection("TA'LIM");
+  addField("Ma'lumoti",get("education_level"));
+  addField("Muassasa",get("education_place"));
+  addField("Mutaxassisligi",get("speciality"));
+  addField("Bitirgan yili",get("graduation_year"));
+
+  addSection("OILAVIY HOLATI");
+  addField("Holati",get("marital_status"));
+  addField("Farzandlari",get("children"));
+
+  addSection("SOG'LIG'I");
+  addField("Ma'lumot",get("health"));
+
+  addSection("ISH TAJRIBASI 1");
+  addField("Kompaniya",get("company1"));
+  addField("Lavozim",get("position1"));
+  addField("Muddati",get("period1"));
+  addField("Vazifalari",get("tasks1"));
+  addField("Ketish sababi",get("reason1"));
+
+  addSection("ISH TAJRIBASI 2");
+  addField("Kompaniya",get("company2"));
+  addField("Lavozim",get("position2"));
+  addField("Muddati",get("period2"));
+  addField("Vazifalari",get("tasks2"));
+  addField("Ketish sababi",get("reason2"));
+
+  addSection("KO'NIKMALAR");
+  addField("Ko'nikmalar",get("skills"));
+  addField("CRM",get("crm"));
+
+  addSection("ISH GRAFIKI");
+  addField("Grafik",get("schedule"));
+
+  addSection("QO'SHIMCHA");
+  addField("Tavsiyalar",get("recommendations"));
+  addField("Kutayotganlari",get("expectations"));
+
+  y+=5;
+  doc.text("Sana: "+new Date().toLocaleDateString(),20,y);
+
+  // EMAIL PART FIX
+  try{
+    const pdfBlob = doc.output("blob");
+    const reader = new FileReader();
+    reader.readAsDataURL(pdfBlob);
+
+    reader.onloadend = async function(){
+      const base64data = reader.result.split(',')[1];
+
+      const response = await fetch("/.netlify/functions/sendemail",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          pdfBase64:base64data,
+          fullname:get("fullname")
+        })
+      });
+
+      if(!response.ok){
+        throw new Error("Email yuborishda xato");
       }
-      doc.text(`${key}: ${value || "-"}`, 20, y);
-      y += 7;
-    }
+
+      alert("Anketa muvaffaqiyatli yuborildi ✅");
+      doc.save("feliza-anketa.pdf");
+    };
+
+  }catch(err){
+    alert("Email yuborilmadi ❌");
+    console.error(err);
   }
-
-  doc.text(`Sana: ${new Date().toLocaleDateString()}`, 20, y + 5);
-
-  doc.save("feliza-anketa.pdf");
 
 });
 
