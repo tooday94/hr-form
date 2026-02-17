@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<title>Sotuvchi-konsultant Anketasi</title>
+
+<script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+
+<style>
+body{
+  background:#f4f4f4;
+  font-family:Arial;
+  padding:40px 0;
+  margin:0;
+}
+.container{
+  background:white;
+  max-width:900px;
+  margin:0 auto;
+  padding:40px;
+  border-radius:10px;
+  box-shadow:0 10px 30px rgba(0,0,0,0.1);
+}
+h2,h3{
+  margin-top:30px;
+}
+input,textarea{
+  width:100%;
+  padding:8px;
+  margin:6px 0;
+}
+textarea{
+  height:70px;
+}
+button{
+  margin-top:20px;
+  padding:14px;
+  width:100%;
+  background:black;
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-size:16px;
+}
+.section{
+  border-top:1px solid #ddd;
+  padding-top:20px;
+  margin-top:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>SOTUVCHI-KONSULTANT ANKETASI</h2>
+
+<form id="jobForm">
+
+<input type="file" id="photo" accept="image/*" required>
+<img id="preview" style="width:120px;margin:10px auto;display:block;border-radius:8px;" />
+
+<div class="section">
+<h3>UMUMIY MA’LUMOTLAR</h3>
+<input name="fullname" placeholder="F.I.Sh" required>
+<input type="date" name="birthdate" required>
+<input name="age" placeholder="Yoshi">
+<input name="citizenship" placeholder="Fuqaroligi">
+<input name="nation" placeholder="Millati">
+<input name="passport" placeholder="Pasport ma’lumotlari">
+<input name="passport_info" placeholder="Berilgan sana va joy">
+<input name="address_permanent" placeholder="Doimiy manzil">
+<input name="address_current" placeholder="Amaldagi manzil">
+<input name="phone" placeholder="Telefon raqami" required>
+<input name="extra_contact" placeholder="Qo‘shimcha aloqa">
+<input name="telegram" placeholder="Telegram / messenjer">
+</div>
+
+<div class="section">
+<h3>MA’LUMOTI</h3>
+<input name="education_level" placeholder="Ma’lumoti">
+<input name="education_place" placeholder="Ta’lim muassasasi">
+<input name="speciality" placeholder="Mutaxassisligi">
+<input name="graduation_year" placeholder="Bitirgan yili">
+</div>
+
+<div class="section">
+<h3>OILAVIY HOLATI</h3>
+<input name="marital_status" placeholder="Oilaviy holati">
+<input name="children" placeholder="Farzandlari soni">
+</div>
+
+<div class="section">
+<h3>SOG‘LIG‘I</h3>
+<textarea name="health"></textarea>
+</div>
+
+<div class="section">
+<h3>ISH TAJRIBASI 1</h3>
+<input name="company1" placeholder="Kompaniya nomi">
+<input name="position1" placeholder="Lavozimi">
+<input name="period1" placeholder="Ishlagan muddati">
+<textarea name="tasks1" placeholder="Asosiy vazifalari"></textarea>
+<input name="reason1" placeholder="Ketish sababi">
+</div>
+
+<div class="section">
+<h3>ISH TAJRIBASI 2</h3>
+<input name="company2" placeholder="Kompaniya nomi">
+<input name="position2" placeholder="Lavozimi">
+<input name="period2" placeholder="Ishlagan muddati">
+<textarea name="tasks2" placeholder="Asosiy vazifalari"></textarea>
+<input name="reason2" placeholder="Ketish sababi">
+</div>
+
+<div class="section">
+<h3>SAVDO KO‘NIKMALARI</h3>
+<textarea name="skills" placeholder="Savdo ko‘nikmalari"></textarea>
+<textarea name="crm" placeholder="CRM / kassa dasturlari"></textarea>
+</div>
+
+<div class="section">
+<h3>ISH GRAFIKI</h3>
+<input name="schedule" placeholder="6/1 grafikga munosabat">
+</div>
+
+<div class="section">
+<h3>QO‘SHIMCHA</h3>
+<textarea name="recommendations" placeholder="Tavsiyalar"></textarea>
+<textarea name="expectations" placeholder="Kutayotganlaringiz"></textarea>
+</div>
+
+<button type="submit">PDF yuklab olish</button>
+
+</form>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+
+emailjs.init("Wk8ImNVcP842FjO-C");
+
+const form = document.getElementById("jobForm");
+const preview = document.getElementById("preview");
+const photoInput = document.getElementById("photo");
+
+photoInput.addEventListener("change", function(){
+const file = this.files[0];
+if(file){
+const reader = new FileReader();
+reader.onload = e => preview.src = e.target.result;
+reader.readAsDataURL(file);
+}
+});
+// PDF functrion
+form.addEventListener("submit", async function(e){
+e.preventDefault();
+
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+
+const data = new FormData(form);
+const imageData = preview.src;
+
+let y = 20;
+
+// Sarlavha
+doc.setFontSize(16);
+doc.text("SOTUVCHI-KONSULTANT ANKETASI", 20, y);
+y += 10;
+
+// RASMNI QO‘SHAMIZ
+if (imageData) {
+  doc.addImage(imageData, 'JPEG', 150, 20, 40, 40);
+}
+
+doc.addImage(imageData, 'PNG', 150, 20, 40, 40);
+// Matn
+doc.setFontSize(11);
+
+for (let [key, value] of data.entries()) {
+  if (key !== "photo") {
+    if (y > 270) {        // yangi sahifa kerak bo‘lsa
+      doc.addPage();
+      y = 20;
+    }
+    doc.text(`${key}: ${value || "-"}`, 20, y);
+    y += 7;
+  }
+}
+
+doc.text(`Sana: ${new Date().toLocaleDateString()}`, 20, y + 5);
+
+doc.save("feliza-anketa.pdf");
+
+// EMAIL
+emailjs.send("service_yofd62j","template_d5tptvq",{
+fullname:data.get("fullname"),
+phone:data.get("phone")
+});
+
+});
+
+});
+</script>
+
+</body>
+</html>
