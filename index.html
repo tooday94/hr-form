@@ -5,7 +5,6 @@
 <title>Sotuvchi-konsultant Anketasi</title>
 
 <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 
 <style>
@@ -138,73 +137,95 @@ button{
 </div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function(){
-
-emailjs.init("Wk8ImNVcP842FjO-C");
-
-const form = document.getElementById("jobForm");
-const preview = document.getElementById("preview");
-const photoInput = document.getElementById("photo");
-
-photoInput.addEventListener("change", function(){
-const file = this.files[0];
-if(file){
-const reader = new FileReader();
-reader.onload = e => preview.src = e.target.result;
-reader.readAsDataURL(file);
-}
-});
-// PDF functrion
-form.addEventListener("submit", async function(e){
-e.preventDefault();
-
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-
-const data = new FormData(form);
-const imageData = preview.src;
-
-let y = 20;
-
-// Sarlavha
-doc.setFontSize(16);
-doc.text("SOTUVCHI-KONSULTANT ANKETASI", 20, y);
-y += 10;
-
-// RASMNI QO‘SHAMIZ
-if (imageData) {
-  doc.addImage(imageData, 'JPEG', 150, 20, 40, 40);
-}
-
-doc.addImage(imageData, 'PNG', 150, 20, 40, 40);
-// Matn
-doc.setFontSize(11);
-
-for (let [key, value] of data.entries()) {
-  if (key !== "photo") {
-    if (y > 270) {        // yangi sahifa kerak bo‘lsa
-      doc.addPage();
-      y = 20;
-    }
-    doc.text(`${key}: ${value || "-"}`, 20, y);
-    y += 7;
-  }
-}
-
-doc.text(`Sana: ${new Date().toLocaleDateString()}`, 20, y + 5);
-
-doc.save("feliza-anketa.pdf");
-
-// EMAIL
-emailjs.send("service_yofd62j","template_d5tptvq",{
-fullname:data.get("fullname"),
-phone:data.get("phone")
-});
-
-});
-
-});
-</script>
+    document.addEventListener("DOMContentLoaded", function(){
+    
+    const form = document.getElementById("jobForm");
+    const preview = document.getElementById("preview");
+    const photoInput = document.getElementById("photo");
+    
+    photoInput.addEventListener("change", function(){
+      const file = this.files[0];
+      if(file){
+        const reader = new FileReader();
+        reader.onload = e => preview.src = e.target.result;
+        reader.readAsDataURL(file);
+      }
+    });
+    
+    form.addEventListener("submit", async function(e){
+      e.preventDefault();
+    
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+    
+      const data = new FormData(form);
+      const imageData = preview.src;
+    
+      let y = 20;
+    
+      doc.setFontSize(16);
+      doc.text("SOTUVCHI-KONSULTANT ANKETASI", 20, y);
+      y += 10;
+    
+      if (imageData) {
+        doc.addImage(imageData, 'JPEG', 150, 20, 40, 40);
+      }
+    
+      doc.setFontSize(11);
+    
+      for (let [key, value] of data.entries()) {
+        if (key !== "photo") {
+          if (y > 270) {
+            doc.addPage();
+            y = 20;
+          }
+          doc.text(`${key}: ${value || "-"}`, 20, y);
+          y += 7;
+        }
+      }
+    
+      doc.text(`Sana: ${new Date().toLocaleDateString()}`, 20, y + 5);
+    
+      // EMAILGA YUBORISH
+      const pdfBlob = doc.output("blob");
+      const reader = new FileReader();
+    
+      reader.readAsDataURL(pdfBlob);
+    
+      reader.onloadend = async function () {
+        const base64data = reader.result.split(',')[1];
+    
+        try {
+          const response = await fetch("/.netlify/functions/sendemail", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              pdfBase64: base64data,
+              fullname: data.get("fullname")
+            })
+          });
+    
+          const result = await response.json();
+          console.log("Email result:", result);
+    
+          alert("Anketa muvaffaqiyatli yuborildi ✅");
+    
+          // Email yuborilgandan keyin yuklab beramiz
+          doc.save("feliza-anketa.pdf");
+    
+        } catch (err) {
+          console.error("Xato:", err);
+          alert("Email yuborishda xatolik ❌");
+        }
+      };
+    
+    });
+    
+    });
+    </script>
+    
 
 </body>
 </html>
