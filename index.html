@@ -1,170 +1,168 @@
 <!DOCTYPE html>
 <html lang="uz">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Sotuvchi-konsultant Anketasi</title>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<style>
-    *{
-      box-sizing: border-box;
-    }
-    
-    body{
-      background:#f5f6f8;
-      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-      margin:0;
-    }
-    
-    .container{
-      background:white;
-      max-width:900px;
-      margin:0 auto;
-      padding:24px;
-    }
-    
-    h2{
-      text-align:center;
-      margin-bottom:10px;
-      font-size:20px;
-    }
-    
-    h3{
-      font-size:15px;
-      margin-bottom:12px;
-      font-weight:600;
-      color:#333;
-    }
-    
-    .section{
-      margin-top:25px;
-      padding-top:15px;
-      border-top:1px solid #eee;
-    }
-    
-    input, textarea{
-      width:100%;
-      padding:14px;
-      margin-bottom:12px;
-      border:1px solid #ddd;
-      border-radius:10px;
-      font-size:16px; /* zoom oldini oladi */
-      background:#fafafa;
-      transition:0.2s;
-    }
-    
-    input:focus, textarea:focus{
-      outline:none;
-      border-color:black;
-      background:white;
-    }
-    
-    textarea{
-      min-height:90px;
-      resize:vertical;
-    }
-    
-    #preview{
-      width:120px;
-      display:block;
-      margin:15px auto;
-      border-radius:12px;
-    }
-    
-    button{
-      width:100%;
-      padding:16px;
-      background:black;
-      color:white;
-      border:none;
-      border-radius:12px;
-      font-size:17px;
-      font-weight:600;
-      cursor:pointer;
-      margin-top:20px;
-    }
-    
-    button:active{
-      transform:scale(0.98);
-    }
-    
-    /* MOBILE OPTIMIZATION */
-    @media (max-width:600px){
-    
-      .container{
-        padding:18px;
-      }
-    
-      h2{
-        font-size:18px;
-      }
-    
-      input, textarea{
-        padding:16px;
-      }
-    
-      button{
-        position:sticky;
-        bottom:0;
-      }
-    
-    }
-
-    label{
-  display:block;
-  font-size:13px;
-  font-weight:600;
-  margin-bottom:5px;
-  margin-top:10px;
-  color:#333;
-}
-
-.progress-wrapper{
-  width:100%;
-  height:8px;
-  background:#eee;
-  border-radius:10px;
-  overflow:hidden;
-  margin-bottom:10px;
-}
-
-.progress-bar{
-  height:100%;
-  width:0%;
-  background:black;
-  transition:0.3s ease;
-}
-
-button{
-  position:relative;
-}
-
-button:disabled{
-  opacity:0.7;
-  cursor:not-allowed;
-}
-
-.spinner{
-  border:3px solid #fff;
-  border-top:3px solid transparent;
-  border-radius:50%;
-  width:18px;
-  height:18px;
-  animation:spin 0.7s linear infinite;
-  margin:0 auto;
-}
-
-@keyframes spin{
-  to{ transform:rotate(360deg); }
-}
-
-
-    </style>
-    
-</head>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+        
+        <title>Sotuvchi-konsultant Anketasi</title>
+        
+        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        
+        <style>
+        
+        *{
+          box-sizing:border-box;
+        }
+        
+        html{
+          scroll-behavior:smooth;
+        }
+        
+        body{
+          background:#f5f6f8;
+          font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+          margin:0;
+          padding-bottom:env(safe-area-inset-bottom);
+        }
+        
+        .container{
+          background:white;
+          max-width:900px;
+          margin:0 auto;
+          padding:24px;
+        }
+        
+        h2{
+          text-align:center;
+          margin-bottom:10px;
+          font-size:20px;
+        }
+        
+        h3{
+          font-size:15px;
+          margin-bottom:12px;
+          font-weight:600;
+          color:#333;
+        }
+        
+        .section{
+          margin-top:25px;
+          padding-top:15px;
+          border-top:1px solid #eee;
+        }
+        
+        input, textarea{
+          width:100%;
+          padding:14px;
+          margin-bottom:12px;
+          border:1px solid #ddd;
+          border-radius:12px;
+          font-size:16px;
+          background:#f9fafb;
+          transition:0.2s;
+        }
+        
+        input:focus, textarea:focus{
+          outline:none;
+          border-color:black;
+          background:white;
+        }
+        
+        textarea{
+          min-height:90px;
+          resize:vertical;
+        }
+        
+        #preview{
+          width:120px;
+          display:block;
+          margin:15px auto;
+          border-radius:12px;
+        }
+        
+        label{
+          display:block;
+          font-size:13px;
+          font-weight:600;
+          margin-bottom:5px;
+          margin-top:10px;
+          color:#333;
+        }
+        
+        .progress-wrapper{
+          width:100%;
+          height:8px;
+          background:#eee;
+          border-radius:10px;
+          overflow:hidden;
+          margin-bottom:10px;
+        }
+        
+        .progress-bar{
+          height:100%;
+          width:0%;
+          background:black;
+          transition:0.3s ease;
+        }
+        
+        button{
+          width:100%;
+          padding:16px;
+          background:black;
+          color:white;
+          border:none;
+          border-radius:14px;
+          font-size:17px;
+          font-weight:600;
+          cursor:pointer;
+          margin-top:20px;
+          position:relative;
+        }
+        
+        button:active{
+          transform:scale(0.98);
+        }
+        
+        button:disabled{
+          opacity:0.7;
+          cursor:not-allowed;
+        }
+        
+        .spinner{
+          border:3px solid #fff;
+          border-top:3px solid transparent;
+          border-radius:50%;
+          width:18px;
+          height:18px;
+          animation:spin 0.7s linear infinite;
+          margin:0 auto;
+        }
+        
+        @keyframes spin{
+          to{ transform:rotate(360deg); }
+        }
+        
+        /* MOBILE */
+        
+        @media (max-width:600px){
+        
+          .container{
+            padding:18px;
+          }
+        
+          h2{
+            font-size:18px;
+          }
+        
+          input, textarea{
+            padding:16px;
+          }
+        
+        }
+        
+        </style>
+        </head>
+        
 
 <body>
 <div class="container">
@@ -314,6 +312,7 @@ button:disabled{
     
     function updateProgress(){
       let filled = 0;
+    
       inputs.forEach(input => {
         if(input.value.trim() !== ""){
           filled++;
@@ -368,9 +367,11 @@ button:disabled{
       function section(title){
         y += 8;
         if(y > 260){ doc.addPage(); y = 20; }
+    
         doc.setDrawColor(0);
         doc.line(20,y,190,y);
         y += 8;
+    
         doc.setFont(undefined,"bold");
         doc.setFontSize(13);
         doc.text(title,20,y);
@@ -380,6 +381,7 @@ button:disabled{
     
       function field(label,value){
         if(y > 270){ doc.addPage(); y = 20; }
+    
         doc.setFontSize(11);
         doc.text(label + ":",20,y);
         doc.text(String(value),80,y);
@@ -430,70 +432,7 @@ button:disabled{
       section("QO'SHIMCHA");
       field("Tavsiyalar",get("recommendations"));
       field("Kutayotganlari",get("expectations"));
-
-      /* ===== FOOTER ===== */
     
-      const nodemailer = require("nodemailer");
-const fetch = require("node-fetch");
-
-exports.handler = async (event) => {
-  try {
-    const { pdfBase64, fullname } = JSON.parse(event.body);
-
-    /* ================= EMAIL ================= */
-
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-      }
-    });
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: process.env.EMAIL_USER,
-      subject: `Yangi HR Anketa - ${fullname}`,
-      text: "Yangi anketa biriktirilgan.",
-      attachments: [
-        {
-          filename: "feliza-anketa.pdf",
-          content: pdfBase64,
-          encoding: "base64"
-        }
-      ]
-    });
-
-    /* ================= TELEGRAM ================= */
-
-    const telegramUrl = `https://api.telegram.org/bot${process.env.TELEGRAM_BOT_TOKEN}/sendDocument`;
-
-    await fetch(telegramUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        chat_id: process.env.TELEGRAM_CHAT_ID,
-        document: pdfBase64,
-        caption: `📄 Yangi HR Anketa\n\n👤 Ism: ${fullname}`
-      })
-    });
-
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: "Email & Telegram sent" })
-    };
-
-  } catch (error) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: error.message })
-    };
-  }
-};
-
-
       /* ===== FOOTER ===== */
       doc.setFontSize(9);
       doc.setTextColor(120);
@@ -505,17 +444,20 @@ exports.handler = async (event) => {
       );
     
       try{
-    
         const pdfBase64 = doc.output("datauristring").split(',')[1];
     
-        await fetch("/.netlify/functions/sendemail",{
+        const response = await fetch("/.netlify/functions/sendtelegram",{
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body:JSON.stringify({
-            pdfBase64:pdfBase64,
-            fullname:get("fullname")
+            pdfBase64: pdfBase64,
+            fullname: get("fullname")
           })
         });
+    
+        if(!response.ok){
+          throw new Error("Server error");
+        }
     
         btnText.innerText = "Yuborildi ✅";
         localStorage.clear();
@@ -534,6 +476,7 @@ exports.handler = async (event) => {
     
     });
     </script>
+    
         
 </body>
 </html>
