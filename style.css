@@ -1,51 +1,114 @@
-body {
-    background-color: #f5f5f5;
-    font-family: Arial, sans-serif;
-    margin: 0;
-    padding: 40px 0;
-  }
-
-  .container {
-    background: white;
-    padding: 40px;
-    border-radius: 10px;
-    width: 90%;
-    max-width: 700px;
-    margin: 0 auto;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+body{
+    background:#f4f4f4;
+    font-family:-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial;
+    margin:0;
+    padding:20px 15px;
   }
   
-
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-}
-
-input {
-    width: 100%;
-    padding: 10px;
-    margin-bottom: 15px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-}
-
-button {
-    width: 100%;
-    padding: 12px;
-    background: black;
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #333;
-}
-
-
-h1 {
-    color: pink;
-    margin-top: 100px;
-}
-
+  .container{
+    background:white;
+    width:100%;
+    max-width:600px;
+    margin:0 auto;
+    padding:25px 18px;
+    border-radius:16px;
+    box-shadow:0 5px 20px rgba(0,0,0,0.08);
+  }
+  
+  h2{
+    font-size:22px;
+    text-align:center;
+    margin-bottom:20px;
+  }
+  
+  h3{
+    font-size:16px;
+    margin-top:25px;
+    margin-bottom:10px;
+  }
+  
+  label{
+    font-size:14px;
+    font-weight:600;
+    display:block;
+    margin-top:12px;
+  }
+  
+  input, textarea{
+    width:100%;
+    padding:14px;
+    font-size:16px; /* 🔥 MUHIM */
+    border-radius:10px;
+    border:1px solid #ddd;
+    margin-top:6px;
+    box-sizing:border-box;
+  }
+  
+  textarea{
+    min-height:90px;
+  }
+  
+  input:focus, textarea:focus{
+    outline:none;
+    border-color:black;
+  }
+  
+  button{
+    margin-top:30px;
+    padding:16px;
+    font-size:17px;
+    font-weight:600;
+    width:100%;
+    border-radius:12px;
+    border:none;
+    background:black;
+    color:white;
+  }
+  
+  .section{
+    margin-top:20px;
+    padding-top:15px;
+    border-top:1px solid #eee;
+  }
+  
+  /* PROGRESS */
+  .progress-wrapper{
+    margin-bottom:20px;
+  }
+  
+  .progress-bar-bg{
+    width:100%;
+    height:10px;
+    background:#eee;
+    border-radius:10px;
+    overflow:hidden;
+  }
+  
+  .progress-bar{
+    height:100%;
+    width:0%;
+    background:black;
+    transition:0.3s;
+  }
+  
+  .progress-text{
+    font-size:13px;
+    margin-top:5px;
+    text-align:right;
+  }
+  
+  /* LOADING */
+  .spinner{
+    width:20px;
+    height:20px;
+    border:3px solid #fff;
+    border-top:3px solid transparent;
+    border-radius:50%;
+    animation:spin 0.8s linear infinite;
+    margin:0 auto;
+  }
+  
+  @keyframes spin{
+    to{ transform:rotate(360deg); }
+  }
+  
