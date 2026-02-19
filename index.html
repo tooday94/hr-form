@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="uz">
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
-        
-        <title>Sotuvchi-konsultant Anketasi</title>
-        
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-        <script src="fonts.js"></script>
-        
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      
+      <title>Anketa</title>
+      
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+      <script src="jspdf link"></script>
+      <script src="fonts.js"></script>
+
         <style>
         
         *{
@@ -269,194 +270,206 @@
 <script>
   document.addEventListener("DOMContentLoaded", function(){
   
-  const form = document.getElementById("jobForm");
-  const preview = document.getElementById("preview");
-  const photoInput = document.getElementById("photo");
-  const submitBtn = document.getElementById("submitBtn");
-  const btnText = document.getElementById("btnText");
+    const form = document.getElementById("jobForm");
+    const preview = document.getElementById("preview");
+    const photoInput = document.getElementById("photo");
+    const submitBtn = document.getElementById("submitBtn");
+    const btnText = document.getElementById("btnText");
   
-  const inputs = form.querySelectorAll("input, textarea");
-  const progressBar = document.getElementById("progressBar");
-  const progressText = document.getElementById("progressText");
+    const inputs = form.querySelectorAll("input, textarea");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
   
-  /* ================= PHOTO PREVIEW ================= */
+    /* ================= PHOTO PREVIEW ================= */
   
-  photoInput.addEventListener("change", function(){
-    const file = this.files[0];
-    if(file){
-      const reader = new FileReader();
-      reader.onload = e => preview.src = e.target.result;
-      reader.readAsDataURL(file);
-    }
-  });
-  
-  /* ================= AUTO SAVE ================= */
-  
-  window.addEventListener("load", () => {
-    inputs.forEach(input => {
-      const saved = localStorage.getItem(input.name);
-      if(saved){
-        input.value = saved;
+    photoInput.addEventListener("change", function(){
+      const file = this.files[0];
+      if(file){
+        const reader = new FileReader();
+        reader.onload = e => preview.src = e.target.result;
+        reader.readAsDataURL(file);
       }
     });
-    updateProgress();
-  });
   
-  inputs.forEach(input => {
-    input.addEventListener("input", () => {
-      localStorage.setItem(input.name, input.value);
+    /* ================= AUTO SAVE ================= */
+  
+    window.addEventListener("load", () => {
+      inputs.forEach(input => {
+        const saved = localStorage.getItem(input.name);
+        if(saved) input.value = saved;
+      });
       updateProgress();
     });
-  });
   
-  /* ================= PROGRESS ================= */
-  
-  function updateProgress(){
-    let filled = 0;
     inputs.forEach(input => {
-      if(input.value.trim() !== ""){
-        filled++;
-      }
+      input.addEventListener("input", () => {
+        localStorage.setItem(input.name, input.value);
+        updateProgress();
+      });
     });
   
-    const percent = Math.round((filled / inputs.length) * 100);
-    if(progressBar) progressBar.style.width = percent + "%";
-    if(progressText) progressText.innerText = percent + "% to‘ldirildi";
-  }
+    /* ================= PROGRESS ================= */
   
-  /* ================= SUBMIT ================= */
+    function updateProgress(){
+      let filled = 0;
+      inputs.forEach(input => {
+        if(input.value.trim() !== "") filled++;
+      });
   
-  form.addEventListener("submit", async function(e){
-    e.preventDefault();
-  
-    submitBtn.disabled = true;
-    btnText.innerHTML = '<div class="spinner"></div>';
-  
-    try {
-  
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-  
-      /* ===== FONTNI HAR SAFAR QO‘SHAMIZ ===== */
-      doc.addFileToVFS("DejaVuSans.ttf", window.DEJAVU_FONT);
-      doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
-      doc.setFont("DejaVuSans");
-  
-      const data = new FormData(form);
-      const get = n => data.get(n) || "-";
-  
-      let y = 20;
-  
-      /* ===== HEADER ===== */
-      doc.setFillColor(0,0,0);
-      doc.rect(0,0,210,20,"F");
-  
-      doc.setTextColor(255,255,255);
-      doc.setFontSize(14);
-      doc.text("FELIZA HR ANKETA",105,13,{align:"center"});
-  
-      doc.setTextColor(0,0,0);
-      y = 30;
-  
-      /* ===== FULL NAME ===== */
-      doc.setFontSize(18);
-      doc.text(get("fullname"),20,y);
-      y += 10;
-  
-      /* ===== IMAGE ===== */
-      if(preview.src && preview.src.startsWith("data:image")){
-        const format = preview.src.includes("png") ? "PNG" : "JPEG";
-        doc.addImage(preview.src, format,150,30,40,40);
-      }
-  
-      function section(title){
-        y += 8;
-        if(y > 260){
-          doc.addPage();
-          doc.setFont("DejaVuSans"); // 🔥 addPage dan keyin qayta
-          y = 20;
-        }
-        doc.setFontSize(13);
-        doc.text(title,20,y);
-        y += 8;
-      }
-  
-      function field(label,value){
-        if(y > 270){
-          doc.addPage();
-          doc.setFont("DejaVuSans"); // 🔥
-          y = 20;
-        }
-        doc.setFontSize(11);
-        doc.text(label + ":",20,y);
-        doc.text(String(value),80,y);
-        y += 7;
-      }
-  
-      section("SHAXSIY MA'LUMOTLAR");
-      field("Tug'ilgan sana",get("birthdate"));
-      field("Yoshi",get("age"));
-      field("Fuqaroligi",get("citizenship"));
-      field("Millati",get("nation"));
-      field("Telefon",get("phone"));
-      field("Telegram",get("telegram"));
-  
-      section("TA'LIM");
-      field("Ma'lumoti",get("education_level"));
-      field("Muassasa",get("education_place"));
-      field("Mutaxassisligi",get("speciality"));
-  
-      section("QO'SHIMCHA");
-      field("Tavsiyalar",get("recommendations"));
-  
-      doc.setFontSize(9);
-      doc.text(
-        "Yaratilgan sana: " + new Date().toLocaleDateString(),
-        105,
-        290,
-        {align:"center"}
-      );
-  
-      /* ===== TELEGRAM ===== */
-  
-      const pdfBase64 = doc.output("datauristring").split(',')[1];
-  
-      const response = await fetch(
-        window.location.origin + "/.netlify/functions/sendtelegram",
-        {
-          method:"POST",
-          headers:{"Content-Type":"application/json"},
-          body: JSON.stringify({
-            pdfBase64: pdfBase64,
-            fullname: get("fullname")
-          })
-        }
-      );
-  
-      const result = await response.json();
-      if(!response.ok){
-        throw new Error(result.error || "Server error");
-      }
-  
-      btnText.innerText = "Yuborildi ✅";
-      localStorage.clear();
-  
-      setTimeout(()=>{
-        doc.save("feliza-anketa.pdf");
-      },800);
-  
-    } catch(err) {
-  
-      console.error("ERROR:", err);
-      submitBtn.disabled = false;
-      btnText.innerText = "Qayta urinib ko‘ring ❌";
-  
+      const percent = Math.round((filled / inputs.length) * 100);
+      if(progressBar) progressBar.style.width = percent + "%";
+      if(progressText) progressText.innerText = percent + "% to‘ldirildi";
     }
   
-  });
+    /* ================= SUBMIT ================= */
+  
+    form.addEventListener("submit", async function(e){
+      e.preventDefault();
+  
+      submitBtn.disabled = true;
+      btnText.innerHTML = '<div class="spinner"></div>';
+  
+      try {
+  
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+  
+        /* ===== FONT CHECK ===== */
+        if(!window.DEJAVU_FONT){
+          throw new Error("Font yuklanmagan (fonts.js ishlamayapti)");
+        }
+  
+        doc.addFileToVFS("DejaVuSans.ttf", window.DEJAVU_FONT);
+        doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
+        doc.setFont("DejaVuSans");
+  
+        const data = new FormData(form);
+        const get = n => data.get(n) || "-";
+  
+        let y = 20;
+  
+        /* ===== HEADER ===== */
+  
+        doc.setFillColor(0,0,0);
+        doc.rect(0,0,210,20,"F");
+  
+        doc.setTextColor(255,255,255);
+        doc.setFontSize(14);
+        doc.text("FELIZA HR ANKETA",105,13,{align:"center"});
+  
+        doc.setTextColor(0,0,0);
+        y = 30;
+  
+        /* ===== FULL NAME ===== */
+  
+        doc.setFontSize(18);
+        doc.text(get("fullname"),20,y);
+        y += 12;
+  
+        /* ===== IMAGE ===== */
+  
+        if(preview.src && preview.src.startsWith("data:image")){
+          const format = preview.src.includes("png") ? "PNG" : "JPEG";
+          doc.addImage(preview.src, format,150,30,40,40);
+        }
+  
+        function safeAddPage(){
+          doc.addPage();
+          doc.setFont("DejaVuSans");
+          y = 20;
+        }
+  
+        function section(title){
+          y += 8;
+          if(y > 260) safeAddPage();
+          doc.setFontSize(13);
+          doc.text(title,20,y);
+          y += 8;
+        }
+  
+        function field(label,value){
+          if(y > 270) safeAddPage();
+          doc.setFontSize(11);
+  
+          const text = doc.splitTextToSize(String(value), 100);
+  
+          doc.text(label + ":",20,y);
+          doc.text(text,80,y);
+  
+          y += (text.length * 6) + 2;
+        }
+  
+        section("SHAXSIY MA'LUMOTLAR");
+        field("Tug'ilgan sana",get("birthdate"));
+        field("Yoshi",get("age"));
+        field("Fuqaroligi",get("citizenship"));
+        field("Millati",get("nation"));
+        field("Telefon",get("phone"));
+        field("Telegram",get("telegram"));
+        field("Doimiy manzil",get("address_permanent"));
+        field("Hozirgi manzil",get("address_current"));
+  
+        section("TA'LIM");
+        field("Ma'lumoti",get("education_level"));
+        field("Muassasa",get("education_place"));
+        field("Mutaxassisligi",get("speciality"));
+  
+        section("QO'SHIMCHA");
+        field("Tavsiyalar",get("recommendations"));
+  
+        /* ===== FOOTER ===== */
+  
+        doc.setFontSize(9);
+        doc.text(
+          "Yaratilgan sana: " + new Date().toLocaleDateString(),
+          105,
+          290,
+          {align:"center"}
+        );
+  
+        /* ===== TELEGRAM SEND ===== */
+  
+        const pdfBase64 = doc.output("datauristring").split(',')[1];
+  
+        const response = await fetch(
+          window.location.origin + "/.netlify/functions/sendtelegram",
+          {
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body: JSON.stringify({
+              pdfBase64: pdfBase64,
+              fullname: get("fullname")
+            })
+          }
+        );
+  
+        const result = await response.json();
+  
+        if(!response.ok){
+          throw new Error(result.error || "Server error");
+        }
+  
+        btnText.innerText = "Yuborildi ✅";
+        localStorage.clear();
+  
+        setTimeout(()=>{
+          doc.save("feliza-anketa.pdf");
+        },800);
+  
+      } catch(err) {
+  
+        console.error("ERROR:", err);
+        submitBtn.disabled = false;
+        btnText.innerText = "Qayta urinib ko‘ring ❌";
+  
+      }
+  
+    });
   
   });
   </script>
-          
+  
+  
+        
 </body>
 </html>
