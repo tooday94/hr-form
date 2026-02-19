@@ -6,9 +6,9 @@
         
         <title>Sotuvchi-konsultant Anketasi</title>
         
-        <script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
         <script src="fonts.js"></script>
+        
         <style>
         
         *{
@@ -267,15 +267,6 @@
 </div>
 
 <script>
-
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-
-// FONTNI QO‘SHISH
-doc.addFileToVFS("DejaVuSans.ttf", `BU YERGA TO‘LIQ BASE64`);
-doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
-doc.setFont("DejaVuSans");
-
   document.addEventListener("DOMContentLoaded", function(){
   
   const form = document.getElementById("jobForm");
@@ -329,7 +320,6 @@ doc.setFont("DejaVuSans");
     });
   
     const percent = Math.round((filled / inputs.length) * 100);
-  
     if(progressBar) progressBar.style.width = percent + "%";
     if(progressText) progressText.innerText = percent + "% to‘ldirildi";
   }
@@ -346,7 +336,12 @@ doc.setFont("DejaVuSans");
   
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
+  
+      /* ===== FONTNI HAR SAFAR QO‘SHAMIZ ===== */
+      doc.addFileToVFS("DejaVuSans.ttf", window.DEJAVU_FONT);
+      doc.addFont("DejaVuSans.ttf", "DejaVuSans", "normal");
       doc.setFont("DejaVuSans");
+  
       const data = new FormData(form);
       const get = n => data.get(n) || "-";
   
@@ -365,12 +360,10 @@ doc.setFont("DejaVuSans");
   
       /* ===== FULL NAME ===== */
       doc.setFontSize(18);
-      doc.setFont(undefined,"bold");
       doc.text(get("fullname"),20,y);
-      doc.setFont(undefined,"normal");
       y += 10;
   
-      /* ===== IMAGE (SAFE) ===== */
+      /* ===== IMAGE ===== */
       if(preview.src && preview.src.startsWith("data:image")){
         const format = preview.src.includes("png") ? "PNG" : "JPEG";
         doc.addImage(preview.src, format,150,30,40,40);
@@ -378,19 +371,22 @@ doc.setFont("DejaVuSans");
   
       function section(title){
         y += 8;
-        if(y > 260){ doc.addPage(); y = 20; }
-        doc.setDrawColor(0);
-        
-        y += 8;
-        doc.setFont(undefined,"bold");
+        if(y > 260){
+          doc.addPage();
+          doc.setFont("DejaVuSans"); // 🔥 addPage dan keyin qayta
+          y = 20;
+        }
         doc.setFontSize(13);
         doc.text(title,20,y);
-        doc.setFont(undefined,"normal");
         y += 8;
       }
   
       function field(label,value){
-        if(y > 270){ doc.addPage(); y = 20; }
+        if(y > 270){
+          doc.addPage();
+          doc.setFont("DejaVuSans"); // 🔥
+          y = 20;
+        }
         doc.setFontSize(11);
         doc.text(label + ":",20,y);
         doc.text(String(value),80,y);
@@ -404,47 +400,16 @@ doc.setFont("DejaVuSans");
       field("Millati",get("nation"));
       field("Telefon",get("phone"));
       field("Telegram",get("telegram"));
-      field("Doimiy manzil",get("address_permanent"));
-      field("Hozirgi manzil",get("address_current"));
   
       section("TA'LIM");
       field("Ma'lumoti",get("education_level"));
       field("Muassasa",get("education_place"));
       field("Mutaxassisligi",get("speciality"));
-      field("Bitirgan yili",get("graduation_year"));
-  
-      section("OILAVIY HOLATI");
-      field("Holati",get("marital_status"));
-      field("Farzandlari",get("children"));
-  
-      section("SOG'LIG'I");
-      field("Ma'lumot",get("health"));
-  
-      section("ISH TAJRIBASI 1");
-      field("Kompaniya",get("company1"));
-      field("Lavozim",get("position1"));
-      field("Muddati",get("period1"));
-      field("Vazifalari",get("tasks1"));
-      field("Ketish sababi",get("reason1"));
-  
-      section("ISH TAJRIBASI 2");
-      field("Kompaniya",get("company2"));
-      field("Lavozim",get("position2"));
-      field("Muddati",get("period2"));
-      field("Vazifalari",get("tasks2"));
-      field("Ketish sababi",get("reason2"));
-  
-      section("KO'NIKMALAR");
-      field("Savdo ko'nikmalari",get("skills"));
-      field("CRM",get("crm"));
   
       section("QO'SHIMCHA");
       field("Tavsiyalar",get("recommendations"));
-      field("Kutayotganlari",get("expectations"));
   
-      /* ===== FOOTER ===== */
       doc.setFontSize(9);
-      doc.setTextColor(120);
       doc.text(
         "Yaratilgan sana: " + new Date().toLocaleDateString(),
         105,
@@ -452,14 +417,9 @@ doc.setFont("DejaVuSans");
         {align:"center"}
       );
   
-      /* ===== BLOB METHOD (MOBILE SAFE) ===== */
+      /* ===== TELEGRAM ===== */
   
-      const pdfBlob = doc.output("blob");
-      const arrayBuffer = await pdfBlob.arrayBuffer();
-      const base64String = btoa(
-        new Uint8Array(arrayBuffer)
-          .reduce((data, byte) => data + String.fromCharCode(byte), "")
-      );
+      const pdfBase64 = doc.output("datauristring").split(',')[1];
   
       const response = await fetch(
         window.location.origin + "/.netlify/functions/sendtelegram",
@@ -467,14 +427,13 @@ doc.setFont("DejaVuSans");
           method:"POST",
           headers:{"Content-Type":"application/json"},
           body: JSON.stringify({
-            pdfBase64: base64String,
+            pdfBase64: pdfBase64,
             fullname: get("fullname")
           })
         }
       );
   
       const result = await response.json();
-  
       if(!response.ok){
         throw new Error(result.error || "Server error");
       }
@@ -498,7 +457,6 @@ doc.setFont("DejaVuSans");
   
   });
   </script>
-      
-        
+          
 </body>
 </html>
