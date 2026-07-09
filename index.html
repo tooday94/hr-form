@@ -53,7 +53,7 @@
           border-top:1px solid #eee;
         }
         
-        input, textarea{
+        input, textarea, select{
           width:100%;
           padding:14px;
           margin-bottom:12px;
@@ -63,8 +63,8 @@
           background:#f9fafb;
           transition:0.2s;
         }
-        
-        input:focus, textarea:focus{
+
+        input:focus, textarea:focus, select:focus{
           outline:none;
           border-color:black;
           background:white;
@@ -89,6 +89,46 @@
           margin-bottom:5px;
           margin-top:10px;
           color:#333;
+        }
+
+        /* SAVOL BLOKLARI (radio / checkbox) */
+        .qblock{
+          margin-bottom:20px;
+        }
+        .qblock .q{
+          font-weight:600;
+          font-size:14px;
+          margin:0 0 10px;
+          color:#222;
+          line-height:1.4;
+        }
+        .qblock .opt{
+          display:flex;
+          align-items:center;
+          gap:10px;
+          padding:11px 14px;
+          margin-bottom:8px;
+          border:1px solid #ddd;
+          border-radius:12px;
+          background:#f9fafb;
+          cursor:pointer;
+          font-size:15px;
+          transition:0.15s;
+        }
+        .qblock .opt:hover{
+          border-color:#bbb;
+        }
+        .qblock .opt input{
+          width:auto;
+          margin:0;
+          padding:0;
+          accent-color:black;
+          flex-shrink:0;
+          transform:scale(1.2);
+        }
+        .qblock .opt:has(input:checked){
+          border-color:black;
+          background:#fff;
         }
         
         .progress-wrapper{
@@ -233,23 +273,137 @@
     <input name="reason2" placeholder="Ketish sababi">
     </div>
     
-    <div class="section">
-    <h3>KO‘NIKMALAR</h3>
-    <textarea name="skills"></textarea>
-    <textarea name="crm"></textarea>
-    </div>
-    
-    <div class="section">
-    <h3>ISH GRAFIKI</h3>
-    <input name="schedule">
-    </div>
-    
-    <div class="section">
-    <h3>QO‘SHIMCHA</h3>
-    <textarea name="recommendations"></textarea>
-    <textarea name="expectations"></textarea>
-    </div>
 <!-- (sening barcha sectionlaring shu yerda qoladi, o'zgarmaydi) -->
+
+    <div class="section">
+    <h3>QO‘SHIMCHA SAVOLLAR</h3>
+
+    <div class="qblock">
+      <p class="q">Hozirda asosan nima bilan bandsiz?</p>
+      <label class="opt"><input type="radio" name="busy" value="Ishlayman"> Ishlayman</label>
+      <label class="opt"><input type="radio" name="busy" value="O‘qiyman"> O‘qiyman</label>
+      <label class="opt"><input type="radio" name="busy" value="Ishlayman va o‘qiyman"> Ishlayman va o‘qiyman</label>
+      <label class="opt"><input type="radio" name="busy" value="Hozir ish izlayapman"> Hozir ish izlayapman</label>
+      <label class="opt"><input type="radio" name="busy" value="Vaqtincha ishlamayapman"> Vaqtincha ishlamayapman</label>
+      <label class="opt"><input type="radio" name="busy" value="Boshqa"> Boshqa</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Ish tanlashda hozir siz uchun eng muhim narsa nima? <span style="font-weight:400;color:#888;">(bir nechta javob)</span></p>
+      <label class="opt"><input type="checkbox" name="priority" value="Barqaror oylik"> Barqaror oylik</label>
+      <label class="opt"><input type="checkbox" name="priority" value="Karyera o‘sishi"> Karyera o‘sishi</label>
+      <label class="opt"><input type="checkbox" name="priority" value="Yaxshi jamoa"> Yaxshi jamoa</label>
+      <label class="opt"><input type="checkbox" name="priority" value="Uyga yaqin joylashuv"> Uyga yaqin joylashuv</label>
+      <label class="opt"><input type="checkbox" name="priority" value="O‘qish va rivojlanish imkoniyati"> O‘qish va rivojlanish imkoniyati</label>
+      <label class="opt"><input type="checkbox" name="priority" value="Savdo / retail sohasida tajriba orttirish"> Savdo / retail sohasida tajriba orttirish</label>
+      <label class="opt"><input type="checkbox" name="priority" value="Boshqa"> Boshqa</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Tasavvur qiling, 6 oydan keyin ham bizda ishlayapsiz. “Bu ishga kelganim yaxshi bo‘ldi” deyishingiz uchun nimalar bo‘lishi kerak?</p>
+      <textarea name="six_months"></textarea>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Har kuni bajarishni xohlamaydigan ishlaringiz bormi? Bo‘lsa, qaysilar?</p>
+      <textarea name="dislike"></textarea>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Avval qaysi vazifalarni bajargansiz? <span style="font-weight:400;color:#888;">(bir nechta javob)</span></p>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Mijozlar bilan muloqot"> Mijozlar bilan muloqot</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Savdo"> Savdo</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Kassa bilan ishlash"> Kassa bilan ishlash</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Tovar bilan ishlash"> Tovar bilan ishlash</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Xaridorlarga maslahat berish"> Xaridorlarga maslahat berish</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Telegram / Instagram bilan ishlash"> Telegram / Instagram bilan ishlash</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Jadval to‘ldirish"> Jadval to‘ldirish</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Tovar qabul qilish va joylashtirish"> Tovar qabul qilish va joylashtirish</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Jamoada ishlash"> Jamoada ishlash</label>
+      <label class="opt"><input type="checkbox" name="past_tasks" value="Hali tajribam yo‘q, lekin o‘rganishga tayyorman"> Hali tajribam yo‘q, lekin o‘rganishga tayyorman</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Qaysi vaziyatda o‘zingizni ishonchliroq his qilasiz?</p>
+      <label class="opt"><input type="radio" name="confident" value="Odamlar bilan muloqot qilishda"> Odamlar bilan muloqot qilishda</label>
+      <label class="opt"><input type="radio" name="confident" value="Vazifalarni tez bajarishda"> Vazifalarni tez bajarishda</label>
+      <label class="opt"><input type="radio" name="confident" value="Hamma narsani diqqat bilan tekshirishda"> Hamma narsani diqqat bilan tekshirishda</label>
+      <label class="opt"><input type="radio" name="confident" value="Yangi ma’lumotni o‘rganishda"> Yangi ma’lumotni o‘rganishda</label>
+      <label class="opt"><input type="radio" name="confident" value="Xaridorga tanlov qilishda yordam berishda"> Xaridorga tanlov qilishda yordam berishda</label>
+      <label class="opt"><input type="radio" name="confident" value="Aniq yo‘riqnoma bo‘lganda"> Aniq yo‘riqnoma bo‘lganda</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Tasavvur qiling: xaridor ko‘ylakni uzoq tanladi, lekin oxirida “o‘ylab ko‘raman” dedi. Siz nima qilasiz?</p>
+      <label class="opt"><input type="radio" name="customer_case" value="“Xo‘p” deb kuzatib qo‘yaman"> “Xo‘p” deb kuzatib qo‘yaman</label>
+      <label class="opt"><input type="radio" name="customer_case" value="Aynan nima ikkilanayotganini so‘rayman"> Aynan nima ikkilanayotganini so‘rayman</label>
+      <label class="opt"><input type="radio" name="customer_case" value="Boshqa variant taklif qilaman"> Boshqa variant taklif qilaman</label>
+      <label class="opt"><input type="radio" name="customer_case" value="Tovarning afzalliklarini tushuntiraman"> Tovarning afzalliklarini tushuntiraman</label>
+      <label class="opt"><input type="radio" name="customer_case" value="Muloyim tarzda xaridga olib kelishga harakat qilaman"> Muloyim tarzda xaridga olib kelishga harakat qilaman</label>
+      <label class="opt"><input type="radio" name="customer_case" value="Bilmayman, bu bo‘yicha o‘qitish kerak"> Bilmayman, bu bo‘yicha o‘qitish kerak</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Sizga vazifa berildi, lekin uni qanday bajarish kerakligini to‘liq tushunmadingiz. Nima qilasiz?</p>
+      <label class="opt"><input type="radio" name="unclear_task" value="Qanday tushungan bo‘lsam, shunday bajaraman"> Qanday tushungan bo‘lsam, shunday bajaraman</label>
+      <label class="opt"><input type="radio" name="unclear_task" value="Avval aniqlashtirib olaman"> Avval aniqlashtirib olaman</label>
+      <label class="opt"><input type="radio" name="unclear_task" value="Misol ko‘rsatishni so‘rayman"> Misol ko‘rsatishni so‘rayman</label>
+      <label class="opt"><input type="radio" name="unclear_task" value="O‘zim o‘xshash yechim topishga harakat qilaman"> O‘zim o‘xshash yechim topishga harakat qilaman</label>
+      <label class="opt"><input type="radio" name="unclear_task" value="Vazifani keyinga qoldiraman"> Vazifani keyinga qoldiraman</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Qaysi fikr sizga yaqinroq?</p>
+      <label class="opt"><input type="radio" name="preference" value="Tezroq qilib, keyin tuzatgan yaxshi"> Tezroq qilib, keyin tuzatgan yaxshi</label>
+      <label class="opt"><input type="radio" name="preference" value="Sekinroq bo‘lsa ham, to‘g‘ri qilgan yaxshi"> Sekinroq bo‘lsa ham, to‘g‘ri qilgan yaxshi</label>
+      <label class="opt"><input type="radio" name="preference" value="Eng muhimi — hozir nima muhimroq ekanini tushunish"> Eng muhimi — hozir nima muhimroq ekanini tushunish</label>
+      <label class="opt"><input type="radio" name="preference" value="Xato qilishdan ko‘ra, so‘rab olgan yaxshi"> Xato qilishdan ko‘ra, so‘rab olgan yaxshi</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Yaqinda qanday yangi narsani o‘rgandingiz va bu sizga qayerda foyda berdi?</p>
+      <textarea name="recent_learn"></textarea>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Ishdan tashqari qaysi mavzular sizga qiziq? <span style="font-weight:400;color:#888;">(bir nechta javob)</span></p>
+      <label class="opt"><input type="checkbox" name="interests" value="Kitob o‘qish"> Kitob o‘qish</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Sport / fitnes"> Sport / fitnes</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Sog‘lom turmush tarzi"> Sog‘lom turmush tarzi</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Go‘zallik / parvarish"> Go‘zallik / parvarish</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Pazandachilik"> Pazandachilik</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Sayohat"> Sayohat</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Musiqa"> Musiqa</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Kino / seriallar"> Kino / seriallar</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Fotosurat / video"> Fotosurat / video</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Blog yuritish"> Blog yuritish</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Psixologiya"> Psixologiya</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Shaxsiy rivojlanish"> Shaxsiy rivojlanish</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Moliyaviy savodxonlik"> Moliyaviy savodxonlik</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Marketing"> Marketing</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Dizayn / kreativlik"> Dizayn / kreativlik</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Tikuvchilik / qo‘l mehnati"> Tikuvchilik / qo‘l mehnati</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Uy bezagi / interyer"> Uy bezagi / interyer</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Bolalar tarbiyasi"> Bolalar tarbiyasi</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Kompyuter / texnologiyalar"> Kompyuter / texnologiyalar</label>
+      <label class="opt"><input type="checkbox" name="interests" value="Til o‘rganish"> Til o‘rganish</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Hozir ishni qancha muddatga izlayapsiz?</p>
+      <label class="opt"><input type="radio" name="job_duration" value="1–3 oyga"> 1–3 oyga</label>
+      <label class="opt"><input type="radio" name="job_duration" value="3–6 oyga"> 3–6 oyga</label>
+      <label class="opt"><input type="radio" name="job_duration" value="1 yil va undan ko‘proqqa"> 1 yil va undan ko‘proqqa</label>
+      <label class="opt"><input type="radio" name="job_duration" value="Uzoq muddatli barqaror ish izlayapman"> Uzoq muddatli barqaror ish izlayapman</label>
+      <label class="opt"><input type="radio" name="job_duration" value="Hozircha aniq bilmayman"> Hozircha aniq bilmayman</label>
+    </div>
+
+    <div class="qblock">
+      <p class="q">Qanday holat sizning ishdan tez ketishingizga sabab bo‘lishi mumkin?</p>
+      <textarea name="leave_reason"></textarea>
+    </div>
+
+    </div>
 
 <button type="submit" id="submitBtn">
     <span id="btnText">Yuborish</span>
@@ -295,15 +449,33 @@
   
     window.addEventListener("load", () => {
       inputs.forEach(input => {
-        const saved = localStorage.getItem(input.name);
-        if(saved) input.value = saved;
+        if(input.type === "file") return;
+        if(input.type === "radio" || input.type === "checkbox"){
+          if(localStorage.getItem(input.name + "::" + input.value) === "1"){
+            input.checked = true;
+          }
+        } else {
+          const saved = localStorage.getItem(input.name);
+          if(saved) input.value = saved;
+        }
       });
       updateProgress();
     });
-  
+
     inputs.forEach(input => {
-      input.addEventListener("input", () => {
-        localStorage.setItem(input.name, input.value);
+      if(input.type === "file") return;
+      const evt = (input.type === "radio" || input.type === "checkbox") ? "change" : "input";
+      input.addEventListener(evt, () => {
+        if(input.type === "radio"){
+          // Guruhdagi barcha variantlarni yangilash
+          form.querySelectorAll('[name="' + input.name + '"]').forEach(r => {
+            localStorage.setItem(r.name + "::" + r.value, r.checked ? "1" : "0");
+          });
+        } else if(input.type === "checkbox"){
+          localStorage.setItem(input.name + "::" + input.value, input.checked ? "1" : "0");
+        } else {
+          localStorage.setItem(input.name, input.value);
+        }
         updateProgress();
       });
     });
@@ -311,12 +483,22 @@
     /* ================= PROGRESS ================= */
   
     function updateProgress(){
-      let filled = 0;
+      const seen = new Set();
+      let total = 0, filled = 0;
       inputs.forEach(input => {
-        if(input.value.trim() !== "") filled++;
+        if(input.type === "file") return;
+        if(input.type === "radio" || input.type === "checkbox"){
+          if(seen.has(input.name)) return;   // har guruh bir marta sanaladi
+          seen.add(input.name);
+          total++;
+          if(form.querySelector('[name="' + input.name + '"]:checked')) filled++;
+        } else {
+          total++;
+          if(input.value.trim() !== "") filled++;
+        }
       });
-  
-      const percent = Math.round((filled / inputs.length) * 100);
+
+      const percent = total ? Math.round((filled / total) * 100) : 0;
       if(progressBar) progressBar.style.width = percent + "%";
       if(progressText) progressText.innerText = percent + "% to‘ldirildi";
     }
@@ -345,6 +527,7 @@
   
         const data = new FormData(form);
         const get = n => data.get(n) || "-";
+        const getMulti = n => { const v = data.getAll(n); return v.length ? v.join(", ") : "-"; };
   
         let y = 20;
   
@@ -390,13 +573,30 @@
         function field(label,value){
           if(y > 270) safeAddPage();
           doc.setFontSize(11);
-  
+
           const text = doc.splitTextToSize(String(value), 100);
-  
+
           doc.text(label + ":",20,y);
           doc.text(text,80,y);
-  
+
           y += (text.length * 6) + 2;
+        }
+
+        // Savol + javob (to'liq kenglikda, savol tepada, javob pastida)
+        function qa(question, answer){
+          if(y > 255) safeAddPage();
+          doc.setFontSize(11);
+          doc.setTextColor(0,0,0);
+          const q = doc.splitTextToSize(question, 170);
+          doc.text(q, 20, y);
+          y += q.length * 5.5 + 1;
+
+          const a = doc.splitTextToSize("Javob: " + String(answer), 170);
+          doc.setTextColor(70,70,70);
+          doc.text(a, 24, y);
+          doc.setTextColor(0,0,0);
+          y += a.length * 5.5 + 5;
+          if(y > 275) safeAddPage();
         }
   
         section("SHAXSIY MA'LUMOTLAR");
@@ -436,14 +636,21 @@
     field("Vazifalari",get("tasks2"));
     field("Ketish sababi",get("reason2"));
 
-    section("KO'NIKMALAR");
-    field("Savdo ko'nikmalari",get("skills"));
-    field("CRM",get("crm"));
+    section("QO'SHIMCHA SAVOLLAR");
+    qa("Hozirda asosan nima bilan bandsiz?", get("busy"));
+    qa("Ish tanlashda hozir siz uchun eng muhim narsa nima?", getMulti("priority"));
+    qa("6 oydan keyin ham bizda ishlab, \"kelganim yaxshi bo'ldi\" deyishingiz uchun nima kerak?", get("six_months"));
+    qa("Har kuni bajarishni xohlamaydigan ishlaringiz bormi? Bo'lsa, qaysilar?", get("dislike"));
+    qa("Avval qaysi vazifalarni bajargansiz?", getMulti("past_tasks"));
+    qa("Qaysi vaziyatda o'zingizni ishonchliroq his qilasiz?", get("confident"));
+    qa("Xaridor uzoq tanlab, oxirida \"o'ylab ko'raman\" desa, nima qilasiz?", get("customer_case"));
+    qa("Vazifa berildi, lekin uni tushunmadingiz. Nima qilasiz?", get("unclear_task"));
+    qa("Qaysi fikr sizga yaqinroq?", get("preference"));
+    qa("Yaqinda qanday yangi narsani o'rgandingiz va u qayerda foyda berdi?", get("recent_learn"));
+    qa("Ishdan tashqari qaysi mavzular sizga qiziq?", getMulti("interests"));
+    qa("Hozir ishni qancha muddatga izlayapsiz?", get("job_duration"));
+    qa("Qanday holat ishdan tez ketishingizga sabab bo'lishi mumkin?", get("leave_reason"));
 
-    section("QO'SHIMCHA");
-    field("Tavsiyalar",get("recommendations"));
-    field("Kutayotganlari",get("expectations"));
-  
         /* ===== FOOTER ===== */
   
         doc.setFontSize(9);
