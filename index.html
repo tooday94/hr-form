@@ -664,7 +664,19 @@
             headers:{"Content-Type":"application/json"},
             body: JSON.stringify({
               pdfBase64: pdfBase64,
-              fullname: get("fullname")
+              fullname: get("fullname"),
+              // Google Sheets uchun — javoblar jadvalga ham yoziladi (2026-10-01)
+              vakansiya: new URLSearchParams(window.location.search).get("vakansiya") || "",
+              fields: (function(){
+                const multi = ["priority", "past_tasks", "interests"];
+                const out = {};
+                new Set(Array.from(data.keys())).forEach(function(k){
+                  if(k === "photo") return;
+                  out[k] = multi.includes(k) ? getMulti(k) : get(k);
+                });
+                multi.forEach(function(k){ if(!(k in out)) out[k] = "-"; });
+                return out;
+              })()
             })
           }
         );
