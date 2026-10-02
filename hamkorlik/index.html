@@ -281,7 +281,10 @@
 (function(){
 
   /* ================= TIL VA BREND ================= */
-  // Havola: /hamkorlik/?b=nessa&lang=ru   (b — qaysi akkauntdan keldi, lang — til)
+  // Havola: /hamkorlik/?k=nessa.uz&lang=ru
+  //   k    — odam qaysi akkauntga yozgan (Sevinch qo'shib beradi); guruh
+  //          xabarida #heshteg, jadvalda "Manba" ustuni bo'lib chiqadi
+  //   lang — til (ru), turi — oldindan tanlangan tur (bloger)
 
   var MATN = {
     uz: {
@@ -346,7 +349,9 @@
 
   var soralgan = new URLSearchParams(window.location.search);
   var til = soralgan.get("lang") === "ru" ? "ru" : "uz";
-  var brend = soralgan.get("b") === "nessa" ? "nessa" : "feliza";
+  var kanal = (soralgan.get("k") || soralgan.get("b") || "").trim().toLowerCase();
+  if(!/^[a-z0-9_.]{1,40}$/.test(kanal)) kanal = "";
+  var brend = kanal.indexOf("nessa") !== -1 ? "nessa" : "feliza";
   var M = MATN[til];
 
   document.documentElement.lang = til;
@@ -476,7 +481,7 @@
       turi: tur,
       ism: forma.ism.value.trim(),
       telefon: forma.telefon.value.trim(),
-      brend: brend,
+      kanal: kanal,
       til: til,
       tuzoq: forma.tuzoq.value
     };

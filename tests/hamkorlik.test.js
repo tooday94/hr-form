@@ -49,11 +49,11 @@ const sh = () => chaqiruvlar.filter((c) => c.url.includes("script.google.com"));
 
 const BLOGER = {
   turi: "bloger", ism: "Dilnoza", instagram: "@dilnoza.style", obunachilar: "10-50",
-  telefon: "+998 90 123 45 67", rasm: JPEG, brend: "nessa", til: "uz", tuzoq: "",
+  telefon: "+998 90 123 45 67", rasm: JPEG, kanal: "nessa.uz", til: "uz", tuzoq: "",
 };
 const BOSHQA = {
   turi: "yetkazuvchi", ism: "Aziz", taklif: "Mato yetkazib beramiz.\nNamunalar bor.",
-  telefon: "901234567", brend: "feliza", til: "ru", tuzoq: "",
+  telefon: "901234567", kanal: "feliza_uz", til: "ru", tuzoq: "",
 };
 
 let soni = 0;
@@ -125,7 +125,7 @@ async function holat(nom, fn) {
     const qism = tg()[0].opts.body.getBuffer();
     const matn = qism.toString("utf8");
     assert.ok(matn.includes(CHAT));
-    for (const s of ["🤝 Hamkorlik taklifi (sayt orqali)", "Brend: Nessa", "Turi: 📸 Bloger / reklama",
+    for (const s of ["🤝 Hamkorlik taklifi (sayt orqali)", "Akkaunt: #nessa_uz\n", "Turi: 📸 Bloger / reklama",
       "Ism: Dilnoza", "Instagram: @dilnoza.style", "Obunachilar: 10–50 ming", "Telefon: +998 90 123 45 67"]) {
       assert.ok(matn.includes(s), "xabarda yo'q: " + s);
     }
@@ -140,9 +140,10 @@ async function holat(nom, fn) {
     assert.deepStrictEqual(j.headers, ["Sana-vaqt", "Username", "Ism", "Turi", "Taklif", "Instagram",
       "Obunachilar", "Statistika", "Telefon", "Manba"]);
     assert.strictEqual(j.row.length, 10);
-    assert.ok(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(j.row[0]));
+    // sana botdagi yozuvlar bilan bir xil ko'rinishda
+    assert.ok(/^\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}:\d{2}$/.test(j.row[0]), j.row[0]);
     assert.deepStrictEqual(j.row.slice(1), ["", "Dilnoza", "📸 Bloger / reklama", "", "'@dilnoza.style",
-      "10–50 ming", "https://t.me/c/3748978031/777", "'+998 90 123 45 67", "Sayt · Nessa"]);
+      "10–50 ming", "https://t.me/c/3748978031/777", "'+998 90 123 45 67", "nessa.uz"]);
   });
 
   await holat("yetkazib beruvchi — matnli xabar, rasm ustuni bo'sh, ruscha belgisi", async () => {
@@ -153,19 +154,32 @@ async function holat(nom, fn) {
     const x = JSON.parse(tg()[0].opts.body);
     assert.strictEqual(x.chat_id, CHAT);
     assert.strictEqual(x.parse_mode, undefined, "matn oddiy bo'lishi kerak (HTML/Markdown emas)");
-    assert.ok(x.text.includes("Brend: Feliza"));
+    assert.ok(x.text.includes("Akkaunt: #feliza_uz\n"));
     assert.ok(x.text.includes("Turi: 📦 Yetkazib beruvchi (tovar)"));
     assert.ok(x.text.includes("Taklif: Mato yetkazib beramiz.\nNamunalar bor."));
     assert.ok(x.text.includes("Til: ruscha"));
     const row = JSON.parse(sh()[0].opts.body).row;
     assert.deepStrictEqual(row.slice(1), ["", "Aziz", "📦 Yetkazib beruvchi (tovar)",
-      "Mato yetkazib beramiz.\nNamunalar bor.", "", "", "", "901234567", "Sayt · Feliza · RU"]);
+      "Mato yetkazib beramiz.\nNamunalar bor.", "", "", "", "901234567", "feliza_uz"]);
   });
 
-  await holat("noma'lum brend va til — Feliza / o'zbekcha", async () => {
-    await yubor({ ...BOSHQA, brend: "<b>zara</b>", til: "en" });
-    assert.ok(JSON.parse(tg()[0].opts.body).text.includes("Brend: Feliza"));
-    assert.strictEqual(JSON.parse(sh()[0].opts.body).row[9], "Sayt · Feliza");
+  await holat("akkaunt nomi — heshteg bo'lib chiqadi, begona matn o'tmaydi", async () => {
+    const { akkauntNomi, heshteg, toshkentVaqti } = _ichki;
+    assert.strictEqual(heshteg(akkauntNomi("nessa.uz")), "#nessa_uz");
+    assert.strictEqual(heshteg(akkauntNomi(" Feliza_UZ ")), "#feliza_uz");
+    assert.strictEqual(heshteg(akkauntNomi("telegram_nessa")), "#telegram_nessa");
+    for (const yomon of ["<b>zara</b>", "nessa uz", "#nessa", "a\nTelefon: 000", "x".repeat(41), "", null, 7, {}]) {
+      assert.strictEqual(akkauntNomi(yomon), "", String(yomon));
+    }
+    assert.strictEqual(toshkentVaqti(Date.UTC(2026, 9, 2, 18, 18, 44)), "02.10.2026 23:18:44");
+    assert.strictEqual(toshkentVaqti(Date.UTC(2026, 11, 31, 19, 0, 5)), "01.01.2027 00:00:05");
+
+    // havolasiz ochilgan yoki buzilgan akkaunt nomi — "ko'rsatilmagan" / "sayt"
+    await yubor({ ...BOSHQA, kanal: "<b>zara</b>", til: "en" });
+    const text = JSON.parse(tg()[0].opts.body).text;
+    assert.ok(text.includes("Akkaunt: ko'rsatilmagan\n"), text);
+    assert.ok(!text.includes("zara") && !text.includes("Til: ruscha"));
+    assert.strictEqual(JSON.parse(sh()[0].opts.body).row[9], "sayt");
   });
 
   await holat("formula va soxta satr — zararsizlantiriladi", async () => {

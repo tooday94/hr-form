@@ -23,9 +23,8 @@ const OBUNACHILAR = {
   "50-100": "50–100 ming",
   "100+": "100 ming+",
 };
-const BRENDLAR = { feliza: "Feliza", nessa: "Nessa" };
-
-// A–I — botdagi bilan bir xil; J — taklif qayerdan kelgani
+// A–I — botdagi bilan bir xil; J — odam qaysi akkauntga yozgani (Sevinch
+// havolaga ?k=<akkaunt> qo'shib beradi: nessa.uz, feliza_uz, telegram_nessa ...)
 const SARLAVHALAR = [
   "Sana-vaqt", "Username", "Ism", "Turi", "Taklif", "Instagram",
   "Obunachilar", "Statistika", "Telefon", "Manba",
@@ -50,6 +49,22 @@ const birQator = (v, n) => qisqa(typeof v === "string" ? v.replace(/\s+/g, " ") 
 const xavfsiz = (v) => {
   const s = String(v == null ? "" : v);
   return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+};
+
+// Akkaunt nomi havoladan keladi — faqat harf, raqam, "_" va "." qoldiriladi
+// (guruh xabariga begona matn tiqishtirib bo'lmasin). Topilmasa — "".
+const akkauntNomi = (v) => {
+  const s = typeof v === "string" ? v.trim().toLowerCase() : "";
+  return /^[a-z0-9_.]{1,40}$/.test(s) ? s : "";
+};
+// Telegram heshtegi nuqtada uziladi: nessa.uz → #nessa_uz
+const heshteg = (akkaunt) => "#" + akkaunt.replace(/[^a-z0-9_]/g, "_");
+
+// Sana botdagi yozuvlar bilan bir xil ko'rinishda: 02.10.2026 23:18:44 (Toshkent)
+const toshkentVaqti = (ms) => {
+  const [y, m, k, vaqt] = new Date(ms + 5 * 3600 * 1000).toISOString()
+    .replace(/\..*$/, "").split(/[-T]/);
+  return `${k}.${m}.${y} ${vaqt}`;
 };
 
 const javob = (statusCode, body) => ({
@@ -86,7 +101,7 @@ function tekshir(d) {
     obunachilar: "",
     taklif: "",
     rasm: null,
-    brend: bor(BRENDLAR, d.brend) ? BRENDLAR[d.brend] : BRENDLAR.feliza,
+    akkaunt: akkauntNomi(d.kanal),
     til: d.til === "ru" ? "ru" : "uz",
   };
   if (!t.ism) return { xato: "ism" };
@@ -117,8 +132,8 @@ function tekshir(d) {
 function xabarMatni(t) {
   const q = [
     "🤝 Hamkorlik taklifi (sayt orqali)",
+    `Akkaunt: ${t.akkaunt ? heshteg(t.akkaunt) : "ko'rsatilmagan"}`,
     "",
-    `Brend: ${t.brend}`,
     `Turi: ${t.turi}`,
     `Ism: ${t.ism}`,
   ];
@@ -232,12 +247,11 @@ exports.handler = async (event, context) => {
       const chatId = String((msg.chat || {}).id || "");
       const havola = chatId.startsWith("-100") && msg.message_id
         ? `https://t.me/c/${chatId.slice(4)}/${msg.message_id}` : "";
-      const sana = new Date(Date.now() + 5 * 3600 * 1000)
-        .toISOString().replace("T", " ").slice(0, 19);       // Toshkent vaqti
+      const sana = toshkentVaqti(Date.now());
       const qator = [
         sana, "", xavfsiz(t.ism), t.turi, xavfsiz(t.taklif), xavfsiz(t.instagram),
         t.obunachilar, t.rasm ? (havola || "rasm guruhda") : "", xavfsiz(t.telefon),
-        `Sayt · ${t.brend}` + (t.til === "ru" ? " · RU" : ""),
+        t.akkaunt || "sayt",
       ];
       // Netlify funksiyasi 10 soniyada to'xtatiladi — undan oldin javob qaytarish kerak
       const qoldi = context && typeof context.getRemainingTimeInMillis === "function"
@@ -273,4 +287,4 @@ exports.handler = async (event, context) => {
 };
 
 // Sinovlar uchun (tests/hamkorlik.test.js)
-exports._ichki = { tekshir, xabarMatni, xavfsiz, rasmTuri, SARLAVHALAR };
+exports._ichki = { tekshir, xabarMatni, xavfsiz, rasmTuri, akkauntNomi, heshteg, toshkentVaqti, SARLAVHALAR };
