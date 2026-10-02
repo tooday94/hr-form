@@ -102,6 +102,9 @@ exports.handler = async (event) => {
           .concat(USTUNLAR.map(([k]) => String(fields[k] == null ? "" : fields[k])));
         const r = await fetch(process.env.SHEETS_WEBHOOK, {
           method: "POST",
+          // Apps Script qatorni birinchi so'rovda yozadi va 302 qaytaradi;
+          // yo'naltirishga ergashilmaydi (keyingi manzil xato sahifa beradi)
+          redirect: "manual",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sheet: process.env.SHEETS_TAB || "HR anketalar",
@@ -109,7 +112,7 @@ exports.handler = async (event) => {
             row,
           }),
         });
-        sheets = r.ok ? "yozildi" : `xato ${r.status}`;
+        sheets = (r.ok || [301, 302, 303].includes(r.status)) ? "yozildi" : `xato ${r.status}`;
       } catch (e) {
         console.error("Sheets Error:", e);
         sheets = "xato";
