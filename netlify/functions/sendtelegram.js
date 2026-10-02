@@ -24,6 +24,15 @@ const USTUNLAR = [
   ["leave_reason", "Tez ketish sababi"],
 ];
 
+// Formula in'ektsiyasidan himoya: nomzod yozgan matn =, +, -, @ bilan
+// boshlansa Google Sheets uni formula deb bajaradi. Boshiga apostrof
+// qo'yilsa oddiy matn bo'lib qoladi (apostrof ko'rinmaydi); telefon
+// raqamidagi "+" ham saqlanadi. 2026-10-02 da jadvalda tekshirilgan.
+const xavfsiz = (v) => {
+  const s = String(v == null ? "" : v);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+};
+
 exports.handler = async (event) => {
   try {
 
@@ -98,8 +107,8 @@ exports.handler = async (event) => {
           ? `https://t.me/c/${chat.slice(4)}/${msg.message_id}` : "";
         const sana = new Date(Date.now() + 5 * 3600 * 1000)
           .toISOString().replace("T", " ").slice(0, 19);     // Toshkent vaqti
-        const row = [sana, vakansiya || "", pdfLink]
-          .concat(USTUNLAR.map(([k]) => String(fields[k] == null ? "" : fields[k])));
+        const row = [sana, xavfsiz(vakansiya || ""), pdfLink]
+          .concat(USTUNLAR.map(([k]) => xavfsiz(fields[k])));
         const r = await fetch(process.env.SHEETS_WEBHOOK, {
           method: "POST",
           // Apps Script qatorni birinchi so'rovda yozadi va 302 qaytaradi;
