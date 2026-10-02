@@ -23,7 +23,7 @@ const CHAT = "-1003748978031";
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 7)]).toString("base64");
 
 function muhit(ustiga = {}) {
-  for (const k of ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "HAMKORLIK_CHAT_ID", "SHEETS_WEBHOOK", "HAMKORLIK_TAB"]) {
+  for (const k of ["TELEGRAM_BOT_TOKEN", "TELEGRAM_CHAT_ID", "HAMKORLIK_CHAT_ID", "HAMKORLIK_BOT_TOKEN", "SHEETS_WEBHOOK", "HAMKORLIK_TAB"]) {
     delete process.env[k];
   }
   Object.assign(process.env, {
@@ -257,6 +257,129 @@ async function holat(nom, fn) {
     await yubor(BOSHQA);
     assert.strictEqual(JSON.parse(tg()[0].opts.body).chat_id, "-1009999");
     assert.strictEqual(JSON.parse(sh()[0].opts.body).sheet, "Sinov varag'i");
+  });
+
+  /* ---- hamkorlik guruhi va mavzusi (subchat) ---- */
+  const SMM = "-1002223334445";
+  const tgJavob = (chat, mavzu) => async () => ({
+    ok: true, status: 200,
+    json: async () => ({ ok: true, result: {
+      message_id: 901, chat: { id: Number(chat) },
+      ...(mavzu ? { message_thread_id: mavzu, is_topic_message: true } : {}),
+    } }),
+  });
+  const tgXato = (status, tavsif) => ({ ok: false, status, json: async () => ({ ok: false, description: tavsif }) });
+  const maydon = (c, nom) => {          // multipart yoki JSON so'rovdan maydon qiymati
+    const b = c.opts.body;
+    if (typeof b === "string") return JSON.parse(b)[nom];
+    const m = b.getBuffer().toString("utf8").match(new RegExp(`name="${nom}"\\r\\n\\r\\n([^\\r]*)`));
+    return m ? m[1] : undefined;
+  };
+
+  await holat("manzil yozuvi: guruh yoki guruh:mavzu", async () => {
+    const { manzil } = _ichki;
+    assert.deepStrictEqual(manzil("-1002223334445:77"), { chat: "-1002223334445", mavzu: 77 });
+    assert.deepStrictEqual(manzil(" -1002223334445 "), { chat: "-1002223334445", mavzu: null });
+    assert.deepStrictEqual(manzil("-100222:abc"), { chat: "-100222", mavzu: null });
+    for (const v of ["", null, undefined, "guruh", ":77", "@kanal"]) assert.strictEqual(manzil(v), null, String(v));
+  });
+
+  await holat("hamkorlik mavzusiga (subchatga) yuboriladi, havola mavzu bilan", async () => {
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77` });
+    telegramJavob = tgJavob(SMM, 77);
+    const r = await yubor(BLOGER);
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(tg().length, 1);
+    assert.strictEqual(maydon(tg()[0], "chat_id"), SMM);
+    assert.strictEqual(maydon(tg()[0], "message_thread_id"), "77");
+    assert.ok(!tg()[0].opts.body.getBuffer().toString("utf8").includes("yuborib bo'lmadi"));
+    assert.strictEqual(JSON.parse(sh()[0].opts.body).row[7], "https://t.me/c/2223334445/77/901");
+
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77` });
+    telegramJavob = tgJavob(SMM, 77);
+    await yubor(BOSHQA);
+    const j = JSON.parse(tg()[0].opts.body);
+    assert.strictEqual(j.chat_id, SMM);
+    assert.strictEqual(j.message_thread_id, 77);
+  });
+
+  await holat("mavzu o'chirilgan — o'sha guruhning umumiy chatiga, izoh bilan", async () => {
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77` });
+    const asl = console.error; console.error = () => {};
+    try {
+      telegramJavob = async (url, opts) => (maydon({ opts }, "message_thread_id")
+        ? tgXato(400, "Bad Request: message thread not found") : tgJavob(SMM, null)());
+      const r = await yubor(BLOGER);
+      assert.strictEqual(r.statusCode, 200);
+    } finally { console.error = asl; }
+    assert.strictEqual(tg().length, 2);
+    assert.strictEqual(maydon(tg()[1], "chat_id"), SMM);
+    assert.strictEqual(maydon(tg()[1], "message_thread_id"), undefined);
+    assert.ok(tg()[1].opts.body.getBuffer().toString("utf8").includes("mavzusi topilmadi"));
+    assert.strictEqual(JSON.parse(sh()[0].opts.body).row[7], "https://t.me/c/2223334445/901");
+  });
+
+  await holat("bot hamkorlik guruhida yo'q — taklif anketalar guruhiga tushadi (yo'qolmaydi)", async () => {
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77` });
+    const asl = console.error; console.error = () => {};
+    try {
+      telegramJavob = async (url, opts) => (maydon({ opts }, "chat_id") === SMM
+        ? tgXato(403, "Forbidden: bot is not a member of the supergroup chat") : tgJavob(CHAT, null)());
+      const r = await yubor(BOSHQA);
+      assert.strictEqual(r.statusCode, 200);
+    } finally { console.error = asl; }
+    assert.strictEqual(tg().length, 2);
+    const zaxira = JSON.parse(tg()[1].opts.body);
+    assert.strictEqual(zaxira.chat_id, CHAT);
+    assert.strictEqual(zaxira.message_thread_id, undefined);
+    assert.ok(zaxira.text.includes("Hamkorlik guruhiga yuborib bo'lmadi"));
+    assert.ok(zaxira.text.includes("bot is not a member"));
+    assert.ok(zaxira.text.includes("Turi: 📦 Yetkazib beruvchi (tovar)"), "taklif mazmuni saqlanishi kerak");
+    assert.strictEqual(sh().length, 1);
+  });
+
+  await holat("ikkala guruhga ham o'tmadi — 502, jadvalga yozilmaydi", async () => {
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77` });
+    const asl = console.error; console.error = () => {};
+    try {
+      telegramJavob = async () => tgXato(403, "Forbidden: bot was kicked");
+      const r = await yubor(BOSHQA);
+      assert.strictEqual(r.statusCode, 502);
+      assert.strictEqual(tana(r).xato, "yuborilmadi");
+    } finally { console.error = asl; }
+    assert.strictEqual(tg().length, 2);
+    assert.strictEqual(sh().length, 0);
+  });
+
+  await holat("alohida bot (HAMKORLIK_BOT_TOKEN) — asosiy manzilga u, zaxiraga anketa boti; tokenlar logda yo'q", async () => {
+    const BOSHQA_TOKEN = "777:IKKINCHI-BOT-TOKENI";
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77`, HAMKORLIK_BOT_TOKEN: BOSHQA_TOKEN });
+    const asl = console.error; const yozilgan = [];
+    console.error = (...a) => yozilgan.push(a.map(String).join(" "));
+    try {
+      telegramJavob = async (url) => {
+        if (String(url).includes(BOSHQA_TOKEN)) throw new Error(`request to ${url} failed, reason: ETIMEDOUT`);
+        return tgJavob(CHAT, null)();
+      };
+      const r = await yubor(BOSHQA);
+      assert.strictEqual(r.statusCode, 200);
+    } finally { console.error = asl; }
+    assert.ok(tg()[0].url.includes(BOSHQA_TOKEN) && tg()[1].url.includes(TOKEN));
+    const log = yozilgan.join("\n");
+    assert.ok(log.length > 0 && !log.includes(BOSHQA_TOKEN) && !log.includes(TOKEN), "token logda");
+    assert.ok(!JSON.parse(tg()[1].opts.body).text.includes("IKKINCHI"), "token guruh xabarida");
+  });
+
+  await holat("jadval xatosi ogohlantirishi — taklif tushgan mavzuning o'zida", async () => {
+    muhit({ HAMKORLIK_CHAT_ID: `${SMM}:77` });
+    telegramJavob = tgJavob(SMM, 77);
+    sheetsJavob = async () => ({ ok: false, status: 500 });
+    const asl = console.error; console.error = () => {};
+    try { await yubor(BOSHQA); } finally { console.error = asl; }
+    const ogoh = JSON.parse(tg()[1].opts.body);
+    assert.strictEqual(ogoh.chat_id, SMM);
+    assert.strictEqual(ogoh.message_thread_id, 77);
+    assert.strictEqual(ogoh.reply_to_message_id, 901);
   });
 
   await holat("jadval ulanmagan — faqat guruhga", async () => {

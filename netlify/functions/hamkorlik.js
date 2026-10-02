@@ -32,6 +32,20 @@ const SARLAVHALAR = [
 
 const RASM_CHEGARA = 5 * 1024 * 1024;   // bayt (forma rasmni o'zi siqadi, odatda < 1 MB)
 
+// Takliflar boradigan joy: "guruh" yoki "guruh:mavzu" (forum guruhdagi
+// subchat). Netlify'dagi HAMKORLIK_CHAT_ID bo'lsa — o'sha; bo'lmasa shu
+// standart; u ham bo'sh bo'lsa — anketalar guruhi (TELEGRAM_CHAT_ID).
+// Bot o'sha guruh a'zosi bo'lishi shart. Yuborib bo'lmasa taklif yo'qolmaydi:
+// anketalar guruhiga tushadi (sababi bilan).
+const HAMKORLIK_MANZIL = "";
+
+const manzil = (v) => {
+  const [chat, mavzu] = String(v || "").trim().split(":");
+  if (!/^-?\d+$/.test(chat || "")) return null;
+  return { chat, mavzu: /^\d+$/.test(mavzu || "") ? Number(mavzu) : null };
+};
+const MAVZU_YOQ = /thread not found|topic.?(closed|deleted)/i;
+
 const bor = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
 // Uzunlik belgilar bo'yicha kesiladi (emoji o'rtasidan bo'linib, Telegram
 // rad etadigan buzuq matn chiqmasin)
@@ -147,12 +161,13 @@ function xabarMatni(t) {
   return q.join("\n");
 }
 
-async function telegramga(token, chat, t) {
-  const matn = xabarMatni(t);
+async function telegramga(token, chat, t, mavzu, izoh) {
+  const matn = xabarMatni(t) + (izoh ? `\n\n${izoh}` : "");
   let res;
   if (t.rasm) {
     const fd = new FormData();
     fd.append("chat_id", chat);
+    if (mavzu) fd.append("message_thread_id", String(mavzu));
     fd.append("caption", matn);
     fd.append("photo", t.rasm.buf, { filename: t.rasm.nom, contentType: t.rasm.mime });
     res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
@@ -162,7 +177,10 @@ async function telegramga(token, chat, t) {
     res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ chat_id: chat, text: matn, disable_web_page_preview: true }),
+      body: JSON.stringify({
+        chat_id: chat, text: matn, disable_web_page_preview: true,
+        ...(mavzu ? { message_thread_id: mavzu } : {}),
+      }),
     });
   }
   const j = await res.json().catch(() => ({}));
@@ -201,9 +219,15 @@ async function jadvalga(url, qator, muddatMs) {
 
 exports.handler = async (event, context) => {
   const boshi = Date.now();
-  const token = process.env.TELEGRAM_BOT_TOKEN;
+  // Anketa boti va guruhi — zaxira manzil; hamkorlik uchun alohida bot
+  // (HAMKORLIK_BOT_TOKEN) bo'lmasa o'sha bot yuboradi
+  const zaxiraToken = process.env.TELEGRAM_BOT_TOKEN;
+  const zaxiraChat = process.env.TELEGRAM_CHAT_ID;
+  const asosiyToken = process.env.HAMKORLIK_BOT_TOKEN || zaxiraToken;
+  const asosiy = manzil(process.env.HAMKORLIK_CHAT_ID || HAMKORLIK_MANZIL);
   // Sirni logga chiqarmaslik: node-fetch xatosi matnida URL (token bilan) bo'ladi
-  const tozala = (e) => String((e && e.message) || e).split(token || "\u0000").join("<token>");
+  const tozala = (e) => [zaxiraToken, asosiyToken].filter(Boolean).reduce(
+    (m, tok) => m.split(tok).join("<token>"), String((e && e.message) || e));
 
   try {
     if (event.httpMethod !== "POST") return javob(405, { xato: "usul" });
@@ -223,30 +247,60 @@ exports.handler = async (event, context) => {
     const { xato, taklif: t } = tekshir(d);
     if (xato) return javob(400, { xato });
 
-    // Alohida guruh kerak bo'lsa HAMKORLIK_CHAT_ID; bo'lmasa anketalar guruhi
-    const chat = process.env.HAMKORLIK_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
-    if (!token || !chat) {
-      console.error("Hamkorlik: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID sozlanmagan");
+    const asosiyBor = Boolean(asosiy && asosiyToken);
+    const zaxiraBor = Boolean(zaxiraChat && zaxiraToken);
+    if (!asosiyBor && !zaxiraBor) {
+      console.error("Hamkorlik: Telegram sozlanmagan (TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID)");
       return javob(500, { xato: "server" });
     }
 
     /* 1. Telegram — asosiy yozuv (skrinshot faqat shu yerda saqlanadi).
-          O'tmasa hech narsa yozilmagan bo'ladi: odam qayta yuboradi. */
-    let msg;
-    try {
-      msg = await telegramga(token, chat, t);
-    } catch (e) {
-      console.error("Hamkorlik Telegram xato:", tozala(e));
-      return javob(502, { xato: "yuborilmadi" });
+          Hamkorlik guruhiga (mavzusiga) yuboriladi; bo'lmasa — anketalar
+          guruhiga. Hech qayerga o'tmasa hech narsa yozilmagan bo'ladi:
+          odam qayta yuboradi. */
+    let msg, token = asosiyToken, sabab = "";
+    if (asosiyBor) {
+      try {
+        msg = await telegramga(asosiyToken, asosiy.chat, t, asosiy.mavzu);
+      } catch (e) {
+        sabab = tozala(e);
+        if (asosiy.mavzu && MAVZU_YOQ.test(sabab)) {
+          // Mavzu o'chirilgan yoki yopilgan — o'sha guruhning umumiy chatiga
+          try {
+            msg = await telegramga(asosiyToken, asosiy.chat, t, null,
+              "⚠️ \"Hamkorlik taklifi\" mavzusi topilmadi — umumiy chatga tushdi.");
+          } catch (e2) {
+            sabab = tozala(e2);
+          }
+        }
+        if (!msg) console.error("Hamkorlik guruhiga yuborilmadi:", sabab);
+      }
     }
+    const zaxiraBoshqa = zaxiraBor
+      && !(asosiyBor && String(asosiy.chat) === String(zaxiraChat) && !asosiy.mavzu
+           && asosiyToken === zaxiraToken);
+    if (!msg && zaxiraBoshqa) {
+      try {
+        token = zaxiraToken;
+        msg = await telegramga(zaxiraToken, zaxiraChat, t, null, asosiyBor
+          ? `⚠️ Hamkorlik guruhiga yuborib bo'lmadi, shu yerga tushdi.\nSabab: ${sabab.slice(0, 200)}`
+          : "");
+      } catch (e) {
+        console.error("Hamkorlik Telegram xato:", tozala(e));
+      }
+    }
+    if (!msg) return javob(502, { xato: "yuborilmadi" });
+    const chat = String((msg.chat || {}).id || "");
+    // Xabar mavzuga (subchatga) tushgan bo'lsa — o'sha mavzu
+    const mavzu = msg.is_topic_message && msg.message_thread_id ? msg.message_thread_id : null;
 
     /* 2. Google Sheets. Xato bersa ham taklif yo'qolmaydi — u guruhda bor;
           guruhga "jadvalga yozilmadi" deb aytiladi. */
     let sheets = "ochirilgan";
     if (process.env.SHEETS_WEBHOOK) {
-      const chatId = String((msg.chat || {}).id || "");
-      const havola = chatId.startsWith("-100") && msg.message_id
-        ? `https://t.me/c/${chatId.slice(4)}/${msg.message_id}` : "";
+      // Mavzudagi xabar havolasi: /c/<guruh>/<mavzu>/<xabar>
+      const havola = chat.startsWith("-100") && msg.message_id
+        ? `https://t.me/c/${chat.slice(4)}/${mavzu ? mavzu + "/" : ""}${msg.message_id}` : "";
       const sana = toshkentVaqti(Date.now());
       const qator = [
         sana, "", xavfsiz(t.ism), t.turi, xavfsiz(t.taklif), xavfsiz(t.instagram),
@@ -267,6 +321,7 @@ exports.handler = async (event, context) => {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
               chat_id: chat,
+              ...(mavzu ? { message_thread_id: mavzu } : {}),
               reply_to_message_id: msg.message_id,
               allow_sending_without_reply: true,
               text: "⚠️ Bu taklif Google jadvalga yozilmadi — \"Hamkorlik takliflari\" "
@@ -287,4 +342,4 @@ exports.handler = async (event, context) => {
 };
 
 // Sinovlar uchun (tests/hamkorlik.test.js)
-exports._ichki = { tekshir, xabarMatni, xavfsiz, rasmTuri, akkauntNomi, heshteg, toshkentVaqti, SARLAVHALAR };
+exports._ichki = { tekshir, xabarMatni, xavfsiz, rasmTuri, akkauntNomi, heshteg, toshkentVaqti, manzil, SARLAVHALAR };
