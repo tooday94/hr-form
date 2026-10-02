@@ -1,0 +1,276 @@
+const fetch = require("node-fetch");
+const FormData = require("form-data");
+
+/* Hamkorlik taklifi formasi (/hamkorlik/) — javobni Telegram guruhiga va
+   Google Sheets'ga ("Hamkorlik takliflari" varag'i) yuboradi.
+
+   Telegram botidagi (@felizauz_bot) "Hamkorlik taklifi" formasi bilan bir
+   xil shablon: o'sha savollar, o'sha variantlar, o'sha varaq, o'sha
+   ustunlar — takliflar qaysi yo'ldan kelmasin, bitta ro'yxatda turadi. */
+
+// Yozuvlar botdagi tugmalar bilan AYNAN bir xil (jadvalda "Turi" va
+// "Obunachilar" bo'yicha saralash/filtr ishlashi uchun). Forma qaysi tilda
+// ochilgan bo'lmasin, jadvalga shu yozuvlar tushadi.
+const TURLAR = {
+  bloger: "📸 Bloger / reklama",
+  yetkazuvchi: "📦 Yetkazib beruvchi (tovar)",
+  boshqa: "💡 Boshqa taklif",
+};
+const OBUNACHILAR = {
+  "1-5": "1–5 ming",
+  "5-10": "5–10 ming",
+  "10-50": "10–50 ming",
+  "50-100": "50–100 ming",
+  "100+": "100 ming+",
+};
+const BRENDLAR = { feliza: "Feliza", nessa: "Nessa" };
+
+// A–I — botdagi bilan bir xil; J — taklif qayerdan kelgani
+const SARLAVHALAR = [
+  "Sana-vaqt", "Username", "Ism", "Turi", "Taklif", "Instagram",
+  "Obunachilar", "Statistika", "Telefon", "Manba",
+];
+
+const RASM_CHEGARA = 5 * 1024 * 1024;   // bayt (forma rasmni o'zi siqadi, odatda < 1 MB)
+
+const bor = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
+// Uzunlik belgilar bo'yicha kesiladi (emoji o'rtasidan bo'linib, Telegram
+// rad etadigan buzuq matn chiqmasin)
+const qisqa = (v, n) => {
+  let s = typeof v === "string" ? v : "";
+  if (typeof s.toWellFormed === "function") s = s.toWellFormed();
+  return Array.from(s.trim()).slice(0, n).join("").trim();
+};
+// Bir qatorli maydon: ichidagi yangi qator xabarda soxta satr yasamasin
+const birQator = (v, n) => qisqa(typeof v === "string" ? v.replace(/\s+/g, " ") : "", n);
+
+// Formula in'ektsiyasidan himoya: =, +, -, @ bilan boshlangan matnni
+// Google Sheets formula deb bajaradi. Boshiga apostrof qo'yilsa oddiy
+// matn bo'lib qoladi (apostrof ko'rinmaydi); "+998..." ham saqlanadi.
+const xavfsiz = (v) => {
+  const s = String(v == null ? "" : v);
+  return /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
+};
+
+const javob = (statusCode, body) => ({
+  statusCode,
+  headers: { "Content-Type": "application/json; charset=utf-8" },
+  body: JSON.stringify(body),
+});
+
+// Faqat haqiqiy rasm guruhga uzatiladi (JPEG / PNG / WebP)
+function rasmTuri(buf) {
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) {
+    return { mime: "image/jpeg", nom: "statistika.jpg" };
+  }
+  if (buf.length > 8 && buf[0] === 0x89 && buf.toString("latin1", 1, 4) === "PNG") {
+    return { mime: "image/png", nom: "statistika.png" };
+  }
+  if (buf.length > 12 && buf.toString("latin1", 0, 4) === "RIFF"
+      && buf.toString("latin1", 8, 12) === "WEBP") {
+    return { mime: "image/webp", nom: "statistika.webp" };
+  }
+  return null;
+}
+
+// Forma javobini tekshiradi. Xato bo'lsa {xato: "<kod>"} — kodni sahifa
+// foydalanuvchi tilidagi matnga aylantiradi.
+function tekshir(d) {
+  if (!bor(TURLAR, d.turi)) return { xato: "turi" };
+  const t = {
+    turKalit: d.turi,
+    turi: TURLAR[d.turi],
+    ism: birQator(d.ism, 80),
+    telefon: birQator(d.telefon, 40),
+    instagram: "",
+    obunachilar: "",
+    taklif: "",
+    rasm: null,
+    brend: bor(BRENDLAR, d.brend) ? BRENDLAR[d.brend] : BRENDLAR.feliza,
+    til: d.til === "ru" ? "ru" : "uz",
+  };
+  if (!t.ism) return { xato: "ism" };
+
+  if (t.turKalit === "bloger") {
+    t.instagram = birQator(d.instagram, 120);
+    if (!t.instagram) return { xato: "instagram" };
+    if (!bor(OBUNACHILAR, d.obunachilar)) return { xato: "obunachilar" };
+    t.obunachilar = OBUNACHILAR[d.obunachilar];
+
+    const b64 = typeof d.rasm === "string" ? d.rasm : "";
+    if (!b64) return { xato: "rasm" };
+    if (b64.length > RASM_CHEGARA * 1.4) return { xato: "rasm_katta" };
+    const buf = Buffer.from(b64, "base64");
+    const tur = rasmTuri(buf);
+    if (!tur) return { xato: "rasm_format" };
+    if (buf.length > RASM_CHEGARA) return { xato: "rasm_katta" };
+    t.rasm = { buf, ...tur };
+  } else {
+    t.taklif = qisqa(d.taklif, 3000);
+    if (!t.taklif) return { xato: "taklif" };
+  }
+
+  if (t.telefon.replace(/\D/g, "").length < 9) return { xato: "telefon" };
+  return { taklif: t };
+}
+
+function xabarMatni(t) {
+  const q = [
+    "🤝 Hamkorlik taklifi (sayt orqali)",
+    "",
+    `Brend: ${t.brend}`,
+    `Turi: ${t.turi}`,
+    `Ism: ${t.ism}`,
+  ];
+  if (t.turKalit === "bloger") {
+    q.push(`Instagram: ${t.instagram}`, `Obunachilar: ${t.obunachilar}`);
+  } else {
+    q.push(`Taklif: ${t.taklif}`);
+  }
+  q.push(`Telefon: ${t.telefon}`);
+  if (t.til === "ru") q.push("Til: ruscha");
+  return q.join("\n");
+}
+
+async function telegramga(token, chat, t) {
+  const matn = xabarMatni(t);
+  let res;
+  if (t.rasm) {
+    const fd = new FormData();
+    fd.append("chat_id", chat);
+    fd.append("caption", matn);
+    fd.append("photo", t.rasm.buf, { filename: t.rasm.nom, contentType: t.rasm.mime });
+    res = await fetch(`https://api.telegram.org/bot${token}/sendPhoto`, {
+      method: "POST", body: fd, headers: fd.getHeaders(),
+    });
+  } else {
+    res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chat, text: matn, disable_web_page_preview: true }),
+    });
+  }
+  const j = await res.json().catch(() => ({}));
+  if (!res.ok || !j.ok) {
+    throw new Error(`Telegram ${res.status}: ${j.description || "javob yo'q"}`);
+  }
+  return j.result || {};
+}
+
+// Qaytaradi: "yozildi" | "kutilmoqda" (vaqt tugadi — Apps Script odatda
+// baribir yozib qo'yadi) | "xato ..." (aniq yozilmadi)
+async function jadvalga(url, qator, muddatMs) {
+  const ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+  const soat = ctrl ? setTimeout(() => ctrl.abort(), muddatMs) : null;
+  try {
+    const r = await fetch(url, {
+      method: "POST",
+      // Apps Script qatorni birinchi so'rovda yozadi va 302 qaytaradi;
+      // yo'naltirishga ergashilmaydi (keyingi manzil xato sahifa beradi)
+      redirect: "manual",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sheet: process.env.HAMKORLIK_TAB || "Hamkorlik takliflari",
+        headers: SARLAVHALAR,
+        row: qator,
+      }),
+      signal: ctrl ? ctrl.signal : undefined,
+    });
+    return (r.ok || [301, 302, 303].includes(r.status)) ? "yozildi" : `xato ${r.status}`;
+  } catch (e) {
+    return e && e.name === "AbortError" ? "kutilmoqda" : "xato";
+  } finally {
+    if (soat) clearTimeout(soat);
+  }
+}
+
+exports.handler = async (event, context) => {
+  const boshi = Date.now();
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  // Sirni logga chiqarmaslik: node-fetch xatosi matnida URL (token bilan) bo'ladi
+  const tozala = (e) => String((e && e.message) || e).split(token || "\u0000").join("<token>");
+
+  try {
+    if (event.httpMethod !== "POST") return javob(405, { xato: "usul" });
+
+    let d;
+    try {
+      d = JSON.parse(event.body || "");
+    } catch (e) {
+      return javob(400, { xato: "sorov" });
+    }
+    if (!d || typeof d !== "object" || Array.isArray(d)) return javob(400, { xato: "sorov" });
+
+    // Spam-botlar ko'rinmas maydonni ham to'ldiradi: "yuborildi" deymiz,
+    // lekin hech qayerga yubormaymiz
+    if (qisqa(d.tuzoq, 200)) return javob(200, { ok: true });
+
+    const { xato, taklif: t } = tekshir(d);
+    if (xato) return javob(400, { xato });
+
+    // Alohida guruh kerak bo'lsa HAMKORLIK_CHAT_ID; bo'lmasa anketalar guruhi
+    const chat = process.env.HAMKORLIK_CHAT_ID || process.env.TELEGRAM_CHAT_ID;
+    if (!token || !chat) {
+      console.error("Hamkorlik: TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID sozlanmagan");
+      return javob(500, { xato: "server" });
+    }
+
+    /* 1. Telegram — asosiy yozuv (skrinshot faqat shu yerda saqlanadi).
+          O'tmasa hech narsa yozilmagan bo'ladi: odam qayta yuboradi. */
+    let msg;
+    try {
+      msg = await telegramga(token, chat, t);
+    } catch (e) {
+      console.error("Hamkorlik Telegram xato:", tozala(e));
+      return javob(502, { xato: "yuborilmadi" });
+    }
+
+    /* 2. Google Sheets. Xato bersa ham taklif yo'qolmaydi — u guruhda bor;
+          guruhga "jadvalga yozilmadi" deb aytiladi. */
+    let sheets = "ochirilgan";
+    if (process.env.SHEETS_WEBHOOK) {
+      const chatId = String((msg.chat || {}).id || "");
+      const havola = chatId.startsWith("-100") && msg.message_id
+        ? `https://t.me/c/${chatId.slice(4)}/${msg.message_id}` : "";
+      const sana = new Date(Date.now() + 5 * 3600 * 1000)
+        .toISOString().replace("T", " ").slice(0, 19);       // Toshkent vaqti
+      const qator = [
+        sana, "", xavfsiz(t.ism), t.turi, xavfsiz(t.taklif), xavfsiz(t.instagram),
+        t.obunachilar, t.rasm ? (havola || "rasm guruhda") : "", xavfsiz(t.telefon),
+        `Sayt · ${t.brend}` + (t.til === "ru" ? " · RU" : ""),
+      ];
+      // Netlify funksiyasi 10 soniyada to'xtatiladi — undan oldin javob qaytarish kerak
+      const qoldi = context && typeof context.getRemainingTimeInMillis === "function"
+        ? context.getRemainingTimeInMillis() : 10000 - (Date.now() - boshi);
+      sheets = await jadvalga(process.env.SHEETS_WEBHOOK, qator,
+                              Math.max(1000, Math.min(6000, qoldi - 2500)));
+
+      if (sheets.startsWith("xato")) {
+        console.error("Hamkorlik Sheets:", sheets);
+        try {
+          await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              chat_id: chat,
+              reply_to_message_id: msg.message_id,
+              allow_sending_without_reply: true,
+              text: "⚠️ Bu taklif Google jadvalga yozilmadi — \"Hamkorlik takliflari\" "
+                + "varag'iga qo'lda kiritib qo'ying.",
+            }),
+          });
+        } catch (e) {
+          console.error("Hamkorlik ogohlantirish xato:", tozala(e));
+        }
+      }
+    }
+
+    return javob(200, { ok: true, sheets });
+  } catch (e) {
+    console.error("Hamkorlik xato:", tozala(e));
+    return javob(500, { xato: "server" });
+  }
+};
+
+// Sinovlar uchun (tests/hamkorlik.test.js)
+exports._ichki = { tekshir, xabarMatni, xavfsiz, rasmTuri, SARLAVHALAR };

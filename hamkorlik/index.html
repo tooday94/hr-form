@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Hamkorlik taklifi</title>
+
+  <style>
+    *{ box-sizing:border-box; }
+
+    body{
+      background:#f5f6f8;
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+      margin:0;
+      padding-bottom:env(safe-area-inset-bottom);
+      color:#111;
+    }
+
+    .container{
+      background:white;
+      max-width:560px;
+      margin:0 auto;
+      padding:24px;
+      min-height:100vh;
+    }
+
+    .brend{
+      text-align:center;
+      font-size:13px;
+      font-weight:600;
+      letter-spacing:3px;
+      color:#888;
+      margin:6px 0 4px;
+    }
+
+    h2{
+      text-align:center;
+      margin:0 0 10px;
+      font-size:20px;
+    }
+
+    .kirish{
+      text-align:center;
+      font-size:14px;
+      line-height:1.5;
+      color:#555;
+      margin:0 0 8px;
+    }
+
+    .section{
+      margin-top:22px;
+      padding-top:18px;
+      border-top:1px solid #eee;
+    }
+
+    label, .q{
+      display:block;
+      font-size:14px;
+      font-weight:600;
+      margin:0 0 8px;
+      color:#222;
+      line-height:1.4;
+    }
+
+    .maydon{ margin-bottom:18px; }
+
+    input, textarea{
+      width:100%;
+      padding:14px;
+      border:1px solid #ddd;
+      border-radius:12px;
+      font-size:16px;            /* 16px dan kichik bo'lsa iPhone sahifani kattalashtirib yuboradi */
+      font-family:inherit;
+      background:#f9fafb;
+      transition:0.2s;
+    }
+
+    input:focus, textarea:focus{
+      outline:none;
+      border-color:black;
+      background:white;
+    }
+
+    textarea{
+      min-height:120px;
+      resize:vertical;
+    }
+
+    .izoh{
+      font-size:13px;
+      color:#777;
+      margin:-2px 0 8px;
+      line-height:1.4;
+    }
+
+    .opt{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:13px 14px;
+      margin-bottom:8px;
+      border:1px solid #ddd;
+      border-radius:12px;
+      background:#f9fafb;
+      cursor:pointer;
+      font-size:15px;
+      font-weight:400;
+      transition:0.15s;
+    }
+    .opt input{
+      width:auto;
+      margin:0;
+      padding:0;
+      accent-color:black;
+      flex-shrink:0;
+      transform:scale(1.2);
+    }
+    .opt:has(input:checked){
+      border-color:black;
+      background:#fff;
+    }
+
+    #korinish{
+      display:none;
+      max-width:160px;
+      max-height:220px;
+      margin:12px auto 0;
+      border-radius:12px;
+      border:1px solid #eee;
+    }
+
+    .xato-maydon input:not([type=radio]), .xato-maydon textarea, .xato-maydon .opt{
+      border-color:#d93025;
+    }
+
+    #xato{
+      display:none;
+      margin-top:14px;
+      padding:12px 14px;
+      border-radius:12px;
+      background:#fdecea;
+      color:#b3261e;
+      font-size:14px;
+      line-height:1.4;
+    }
+
+    button{
+      width:100%;
+      padding:16px;
+      background:black;
+      color:white;
+      border:none;
+      border-radius:14px;
+      font-size:17px;
+      font-weight:600;
+      cursor:pointer;
+      margin-top:14px;
+    }
+    button:active{ transform:scale(0.98); }
+    button:disabled{ opacity:0.7; cursor:not-allowed; }
+
+    .spinner{
+      border:3px solid #fff;
+      border-top:3px solid transparent;
+      border-radius:50%;
+      width:18px;
+      height:18px;
+      animation:spin 0.7s linear infinite;
+      margin:0 auto;
+    }
+    @keyframes spin{ to{ transform:rotate(360deg); } }
+
+    /* Spam-botlar uchun tuzoq — odam ko'rmaydi */
+    .tuzoq{
+      position:absolute;
+      left:-9999px;
+      width:1px;
+      height:1px;
+      overflow:hidden;
+    }
+
+    #rahmat{
+      display:none;
+      text-align:center;
+      padding:60px 6px;
+    }
+    #rahmat .belgi{ font-size:44px; margin-bottom:10px; }
+    #rahmat h2{ font-size:22px; }
+    #rahmat p{ font-size:15px; line-height:1.6; color:#444; }
+
+    [hidden]{ display:none !important; }
+
+    @media (max-width:600px){
+      .container{ padding:18px; }
+      h2{ font-size:18px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <p class="brend" id="brend">FELIZA</p>
+  <h2 data-t="sarlavha">HAMKORLIK TAKLIFI</h2>
+  <p class="kirish" data-t="kirish" id="kirish">Formani to‘ldiring — ma’lumotlaringiz bilan tanishib chiqib, o‘zimiz siz bilan bog‘lanamiz.</p>
+
+  <form id="forma" novalidate>
+
+    <div class="section maydon" id="m_turi">
+      <p class="q" data-t="turi_q">Qanday hamkorlik taklif qilmoqchisiz?</p>
+      <label class="opt"><input type="radio" name="turi" value="bloger"><span data-t="tur_bloger">📸 Bloger / reklama</span></label>
+      <label class="opt"><input type="radio" name="turi" value="yetkazuvchi"><span data-t="tur_yetkazuvchi">📦 Yetkazib beruvchi (tovar)</span></label>
+      <label class="opt"><input type="radio" name="turi" value="boshqa"><span data-t="tur_boshqa">💡 Boshqa taklif</span></label>
+    </div>
+
+    <div id="qolgani" hidden>
+
+      <div class="maydon" id="m_ism">
+        <label for="ism" data-t="ism">Ismingiz</label>
+        <input id="ism" name="ism" maxlength="80" autocomplete="name">
+      </div>
+
+      <!-- Bloger / reklama -->
+      <div id="bolim_bloger" hidden>
+        <div class="maydon" id="m_instagram">
+          <label for="instagram" data-t="instagram">Instagram akkauntingiz (@username yoki havola)</label>
+          <input id="instagram" name="instagram" maxlength="120" autocapitalize="none" autocorrect="off" spellcheck="false">
+        </div>
+
+        <div class="maydon" id="m_obunachilar">
+          <p class="q" data-t="obunachilar_q">Obunachilaringiz soni</p>
+          <label class="opt"><input type="radio" name="obunachilar" value="1-5"><span data-t="ob_1">1–5 ming</span></label>
+          <label class="opt"><input type="radio" name="obunachilar" value="5-10"><span data-t="ob_2">5–10 ming</span></label>
+          <label class="opt"><input type="radio" name="obunachilar" value="10-50"><span data-t="ob_3">10–50 ming</span></label>
+          <label class="opt"><input type="radio" name="obunachilar" value="50-100"><span data-t="ob_4">50–100 ming</span></label>
+          <label class="opt"><input type="radio" name="obunachilar" value="100+"><span data-t="ob_5">100 ming+</span></label>
+        </div>
+
+        <div class="maydon" id="m_rasm">
+          <label for="rasm" data-t="rasm">Akkaunt statistikasi skrinshoti</label>
+          <p class="izoh" data-t="rasm_izoh">Instagram → Professional panel → Statistika (oxirgi 30 kun)</p>
+          <input type="file" id="rasm" name="rasm" accept="image/*">
+          <img id="korinish" alt="">
+        </div>
+      </div>
+
+      <!-- Yetkazib beruvchi / Boshqa taklif -->
+      <div id="bolim_taklif" hidden>
+        <div class="maydon" id="m_taklif">
+          <label for="taklif" data-t="taklif">Taklifingizni yozing (kimsiz va nima taklif qilasiz)</label>
+          <textarea id="taklif" name="taklif" maxlength="3000"></textarea>
+        </div>
+      </div>
+
+      <div class="maydon" id="m_telefon">
+        <label for="telefon" data-t="telefon">Telefon raqamingiz</label>
+        <input id="telefon" name="telefon" type="tel" inputmode="tel" maxlength="40" autocomplete="tel" placeholder="+998 90 123 45 67">
+      </div>
+
+      <div class="tuzoq" aria-hidden="true">
+        <input name="tuzoq" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div id="xato" role="alert"></div>
+
+      <button type="submit" id="yuborish"><span id="tugmaMatn" data-t="yuborish">Yuborish</span></button>
+
+    </div>
+  </form>
+
+  <div id="rahmat">
+    <div class="belgi">🤍</div>
+    <h2 data-t="rahmat_s">Rahmat!</h2>
+    <p data-t="rahmat_m">Taklifingiz qabul qilindi. Ma’lumotlaringiz bilan tanishib chiqib, o‘zimiz siz bilan bog‘lanamiz.</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+
+  /* ================= TIL VA BREND ================= */
+  // Havola: /hamkorlik/?b=nessa&lang=ru   (b — qaysi akkauntdan keldi, lang — til)
+
+  var MATN = {
+    uz: {
+      sarlavha: "HAMKORLIK TAKLIFI",
+      kirish: "Formani to‘ldiring — ma’lumotlaringiz bilan tanishib chiqib, o‘zimiz siz bilan bog‘lanamiz.",
+      turi_q: "Qanday hamkorlik taklif qilmoqchisiz?",
+      tur_bloger: "📸 Bloger / reklama",
+      tur_yetkazuvchi: "📦 Yetkazib beruvchi (tovar)",
+      tur_boshqa: "💡 Boshqa taklif",
+      ism: "Ismingiz",
+      instagram: "Instagram akkauntingiz (@username yoki havola)",
+      obunachilar_q: "Obunachilaringiz soni",
+      ob_1: "1–5 ming", ob_2: "5–10 ming", ob_3: "10–50 ming", ob_4: "50–100 ming", ob_5: "100 ming+",
+      rasm: "Akkaunt statistikasi skrinshoti",
+      rasm_izoh: "Instagram → Professional panel → Statistika (oxirgi 30 kun)",
+      taklif: "Taklifingizni yozing (kimsiz va nima taklif qilasiz)",
+      telefon: "Telefon raqamingiz",
+      yuborish: "Yuborish",
+      rahmat_s: "Rahmat!",
+      rahmat_m: "Taklifingiz qabul qilindi. Ma’lumotlaringiz bilan tanishib chiqib, o‘zimiz siz bilan bog‘lanamiz.",
+      x_turi: "Taklif turini tanlang.",
+      x_ism: "Ismingizni yozing.",
+      x_instagram: "Instagram akkauntingizni yozing.",
+      x_obunachilar: "Obunachilar sonini tanlang.",
+      x_rasm: "Statistika skrinshotini yuklang.",
+      x_rasm_format: "Rasmni o‘qib bo‘lmadi. Skrinshotni (JPG yoki PNG) qayta yuklang.",
+      x_rasm_katta: "Rasm juda katta. Boshqa skrinshot yuklang.",
+      x_taklif: "Taklifingizni yozing.",
+      x_telefon: "Telefon raqamini to‘liq yozing.",
+      x_umumiy: "Yuborib bo‘lmadi. Internetni tekshirib, qayta urinib ko‘ring."
+    },
+    ru: {
+      sarlavha: "ПРЕДЛОЖЕНИЕ О СОТРУДНИЧЕСТВЕ",
+      kirish: "Заполните форму — мы ознакомимся с информацией и сами свяжемся с вами.",
+      turi_q: "Какое сотрудничество вы предлагаете?",
+      tur_bloger: "📸 Блогер / реклама",
+      tur_yetkazuvchi: "📦 Поставщик (товар)",
+      tur_boshqa: "💡 Другое предложение",
+      ism: "Ваше имя",
+      instagram: "Ваш Instagram-аккаунт (@username или ссылка)",
+      obunachilar_q: "Количество подписчиков",
+      ob_1: "1–5 тыс.", ob_2: "5–10 тыс.", ob_3: "10–50 тыс.", ob_4: "50–100 тыс.", ob_5: "100 тыс.+",
+      rasm: "Скриншот статистики аккаунта",
+      rasm_izoh: "Instagram → Профессиональная панель → Статистика (за последние 30 дней)",
+      taklif: "Напишите ваше предложение (кто вы и что предлагаете)",
+      telefon: "Ваш номер телефона",
+      yuborish: "Отправить",
+      rahmat_s: "Спасибо!",
+      rahmat_m: "Ваше предложение принято. Мы ознакомимся с информацией и сами свяжемся с вами.",
+      x_turi: "Выберите тип предложения.",
+      x_ism: "Напишите ваше имя.",
+      x_instagram: "Укажите ваш Instagram-аккаунт.",
+      x_obunachilar: "Выберите количество подписчиков.",
+      x_rasm: "Загрузите скриншот статистики.",
+      x_rasm_format: "Не удалось прочитать изображение. Загрузите скриншот (JPG или PNG) ещё раз.",
+      x_rasm_katta: "Изображение слишком большое. Загрузите другой скриншот.",
+      x_taklif: "Напишите ваше предложение.",
+      x_telefon: "Укажите номер телефона полностью.",
+      x_umumiy: "Не удалось отправить. Проверьте интернет и попробуйте ещё раз."
+    }
+  };
+
+  var soralgan = new URLSearchParams(window.location.search);
+  var til = soralgan.get("lang") === "ru" ? "ru" : "uz";
+  var brend = soralgan.get("b") === "nessa" ? "nessa" : "feliza";
+  var M = MATN[til];
+
+  document.documentElement.lang = til;
+  document.title = til === "ru" ? "Предложение о сотрудничестве" : "Hamkorlik taklifi";
+  document.getElementById("brend").textContent = brend === "nessa" ? "NESSA" : "FELIZA";
+  document.querySelectorAll("[data-t]").forEach(function(el){
+    var k = el.getAttribute("data-t");
+    if(M[k]) el.textContent = M[k];
+  });
+
+  /* ================= FORMA ================= */
+
+  var forma = document.getElementById("forma");
+  var qolgani = document.getElementById("qolgani");
+  var bolimBloger = document.getElementById("bolim_bloger");
+  var bolimTaklif = document.getElementById("bolim_taklif");
+  var rasmInput = document.getElementById("rasm");
+  var korinish = document.getElementById("korinish");
+  var xatoEl = document.getElementById("xato");
+  var tugma = document.getElementById("yuborish");
+  var tugmaMatn = document.getElementById("tugmaMatn");
+
+  function tanlangan(nom){
+    var el = forma.querySelector('input[name="' + nom + '"]:checked');
+    return el ? el.value : "";
+  }
+
+  // Tur tanlanganda tegishli savollar ochiladi (botdagi forma bilan bir xil tartib)
+  function turOzgardi(){
+    var tur = tanlangan("turi");
+    qolgani.hidden = !tur;
+    bolimBloger.hidden = tur !== "bloger";
+    bolimTaklif.hidden = !tur || tur === "bloger";
+    xatoKorsat("");
+  }
+  forma.querySelectorAll('input[name="turi"]').forEach(function(r){
+    r.addEventListener("change", turOzgardi);
+  });
+
+  // Havolada ?turi=bloger bo'lsa — tur oldindan tanlangan bo'ladi
+  var oldindan = forma.querySelector('input[name="turi"][value="' + (soralgan.get("turi") || "").replace(/[^a-z]/g, "") + '"]');
+  if(oldindan) oldindan.checked = true;
+  turOzgardi();
+
+  rasmInput.addEventListener("change", function(){
+    var f = rasmInput.files && rasmInput.files[0];
+    if(!f){ korinish.style.display = "none"; return; }
+    var r = new FileReader();
+    r.onload = function(e){ korinish.src = e.target.result; korinish.style.display = "block"; };
+    r.readAsDataURL(f);
+  });
+
+  /* ================= XATO KO'RSATISH ================= */
+
+  function xatoKorsat(matn, maydonId){
+    forma.querySelectorAll(".xato-maydon").forEach(function(el){ el.classList.remove("xato-maydon"); });
+    xatoEl.textContent = matn || "";
+    xatoEl.style.display = matn ? "block" : "none";
+    if(matn && maydonId){
+      var m = document.getElementById(maydonId);
+      if(m){
+        m.classList.add("xato-maydon");
+        m.scrollIntoView({ behavior:"smooth", block:"center" });
+      }
+    }
+  }
+
+  // Odam xatoni tuzata boshlashi bilan qizil belgi yo'qoladi
+  forma.addEventListener("input", function(){ if(xatoEl.textContent) xatoKorsat(""); });
+
+  /* ================= RASMNI SIQISH ================= */
+  // Telefon skrinshoti bir necha MB bo'lishi mumkin — yuborishdan oldin
+  // JPEG qilib kichraytiriladi (sekin internetda ham tez ketadi)
+
+  function rasmniSiq(fayl){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(fayl);
+      var img = new Image();
+      img.onload = function(){
+        try{
+          var eng = 2000;
+          var k = Math.min(1, eng / Math.max(img.naturalWidth, img.naturalHeight));
+          var c = document.createElement("canvas");
+          c.width = Math.max(1, Math.round(img.naturalWidth * k));
+          c.height = Math.max(1, Math.round(img.naturalHeight * k));
+          var ctx = c.getContext("2d");
+          ctx.fillStyle = "#fff";                    // shaffof PNG qora bo'lib qolmasin
+          ctx.fillRect(0, 0, c.width, c.height);
+          ctx.drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          var b64 = c.toDataURL("image/jpeg", 0.85).split(",")[1] || "";
+          if(!b64) return reject(new Error("rasm_format"));
+          resolve(b64);
+        }catch(e){
+          URL.revokeObjectURL(url);
+          reject(new Error("rasm_format"));
+        }
+      };
+      img.onerror = function(){
+        URL.revokeObjectURL(url);
+        reject(new Error("rasm_format"));
+      };
+      img.src = url;
+    });
+  }
+
+  /* ================= YUBORISH ================= */
+
+  var MAYDON = {                       // server xato kodi → sahifadagi maydon
+    turi:"m_turi", ism:"m_ism", instagram:"m_instagram", obunachilar:"m_obunachilar",
+    rasm:"m_rasm", rasm_format:"m_rasm", rasm_katta:"m_rasm", taklif:"m_taklif", telefon:"m_telefon"
+  };
+
+  function band(holat){
+    tugma.disabled = holat;
+    if(holat){ tugmaMatn.innerHTML = '<div class="spinner"></div>'; }
+    else { tugmaMatn.textContent = M.yuborish; }
+  }
+
+  forma.addEventListener("submit", async function(e){
+    e.preventDefault();
+    if(tugma.disabled) return;
+    xatoKorsat("");
+
+    var tur = tanlangan("turi");
+    var d = {
+      turi: tur,
+      ism: forma.ism.value.trim(),
+      telefon: forma.telefon.value.trim(),
+      brend: brend,
+      til: til,
+      tuzoq: forma.tuzoq.value
+    };
+
+    if(!tur) return xatoKorsat(M.x_turi, "m_turi");
+    if(!d.ism) return xatoKorsat(M.x_ism, "m_ism");
+
+    var fayl = null;
+    if(tur === "bloger"){
+      d.instagram = forma.instagram.value.trim();
+      d.obunachilar = tanlangan("obunachilar");
+      fayl = rasmInput.files && rasmInput.files[0];
+      if(!d.instagram) return xatoKorsat(M.x_instagram, "m_instagram");
+      if(!d.obunachilar) return xatoKorsat(M.x_obunachilar, "m_obunachilar");
+      if(!fayl) return xatoKorsat(M.x_rasm, "m_rasm");
+    } else {
+      d.taklif = forma.taklif.value.trim();
+      if(!d.taklif) return xatoKorsat(M.x_taklif, "m_taklif");
+    }
+
+    if(d.telefon.replace(/\D/g, "").length < 9) return xatoKorsat(M.x_telefon, "m_telefon");
+
+    band(true);
+
+    try{
+      if(fayl){
+        try{
+          d.rasm = await rasmniSiq(fayl);
+        }catch(err){
+          band(false);
+          return xatoKorsat(M.x_rasm_format, "m_rasm");
+        }
+      }
+
+      var nazorat = typeof AbortController !== "undefined" ? new AbortController() : null;
+      var soat = nazorat ? setTimeout(function(){ nazorat.abort(); }, 45000) : null;
+      var javob;
+      try{
+        javob = await fetch(window.location.origin + "/.netlify/functions/hamkorlik", {
+          method:"POST",
+          headers:{ "Content-Type":"application/json" },
+          body: JSON.stringify(d),
+          signal: nazorat ? nazorat.signal : undefined
+        });
+      } finally {
+        if(soat) clearTimeout(soat);
+      }
+
+      var natija = {};
+      try{ natija = await javob.json(); }catch(err){}
+
+      if(!javob.ok){
+        band(false);
+        var kod = natija && natija.xato;
+        if(kod && M["x_" + kod]) return xatoKorsat(M["x_" + kod], MAYDON[kod]);
+        return xatoKorsat(M.x_umumiy);
+      }
+
+      forma.style.display = "none";
+      document.getElementById("kirish").style.display = "none";
+      document.getElementById("rahmat").style.display = "block";
+      window.scrollTo(0, 0);
+
+    }catch(err){
+      console.error("XATO:", err);
+      band(false);
+      xatoKorsat(M.x_umumiy);
+    }
+  });
+
+})();
+</script>
+
+</body>
+</html>
