@@ -435,7 +435,26 @@
       const file = this.files[0];
       if(file){
         const reader = new FileReader();
-        reader.onload = e => preview.src = e.target.result;
+        reader.onload = e => {
+          // Telefon rasmi bir necha MB bo'ladi — PDF'ga kichraytirib (JPEG) qo'yiladi.
+          // Aks holda so'rov Netlify chegarasidan (6 MB) oshib, anketa ketmay
+          // qolardi (2026-10-03: nomzod "anketani yuborib bo'lmayapti" deb yozdi).
+          const img = new Image();
+          img.onload = () => {
+            const eng = 800;
+            const k = Math.min(1, eng / Math.max(img.naturalWidth, img.naturalHeight));
+            const c = document.createElement("canvas");
+            c.width = Math.max(1, Math.round(img.naturalWidth * k));
+            c.height = Math.max(1, Math.round(img.naturalHeight * k));
+            const ctx = c.getContext("2d");
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, c.width, c.height);
+            ctx.drawImage(img, 0, 0, c.width, c.height);
+            preview.src = c.toDataURL("image/jpeg", 0.85);
+          };
+          img.onerror = () => { preview.src = e.target.result; };
+          img.src = e.target.result;
+        };
         reader.readAsDataURL(file);
       }
     });
