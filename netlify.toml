@@ -1,2 +1,9 @@
 [build]
   functions = "netlify/functions"
+
+# amoCRM chat webhooki → Sevinch (Rossiya tarmog'idan Railway ochilmagani uchun vositachi)
+[[redirects]]
+  from = "/webhook/amocrm/chat/*"
+  to = "/.netlify/functions/amocrm-relay/:splat"
+  status = 200
+  force = true
