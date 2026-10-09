@@ -10,23 +10,28 @@ const fetch = require("node-fetch");
    turadi (texnika_royxat.js; repo ochiq). Kalit — Netlify'dagi TEXNIKA_KALIT.
    Ro'yxat sahifaga faqat havoladagi to'g'ri kod bilan beriladi. */
 
-const TURLAR = [
-  "Kompyuter (tizim bloki)", "Monitor", "Noutbuk", "Printer / MFU",
-  "Chek printer", "Etiketka printeri", "Shtrix-kod skaneri",
-  "Kassa apparati (onlayn NKT)", "POS-terminal (karta)", "Telefon (smartfon)",
-  "Planshet", "Videokamera / registrator", "Router / Wi-Fi",
-  "UPS (quvvat manbai)", "Boshqa",
+// Texnika turlari har bo'limda o'zi (ro'yxat faylida "turlar"); bo'limda
+// berilmagan bo'lsa — shu zaxira ro'yxat. "Boshqa" har doim oxirida.
+const BOSHQA = "Boshqa";
+const ZAXIRA_TURLAR = [
+  "Noutbuk / kompyuter", "Monitor", "Printer / MFU", "Chek printeri", "Skaner",
+  "Telefon (smartfon)", "Planshet", "Router / Wi-Fi",
 ];
+const turlarOl = (bolim) => {
+  const t = Array.isArray(bolim.turlar) && bolim.turlar.length ? bolim.turlar : ZAXIRA_TURLAR;
+  return [...new Set(t.filter((x) => typeof x === "string" && x && x !== BOSHQA)), BOSHQA];
+};
 const HOLATLAR = { yaxshi: "Ishlaydi", tamir: "Ta'mir kerak", buzuq: "Ishlamaydi" };
 const MAX_TEXNIKA = 15;
 const MAX_EHTIYOJ = 8;
+const MAX_SONI = 50;
 
 const ROYXAT_SARLAVHA = [
-  "Sana-vaqt", "Bo'lim", "Joy", "Xodim", "Lavozim",
-  "Texnika", "Model", "Seriya / inventar №", "Holati", "Izoh",
+  "Sana-vaqt", "Bo'lim", "Joy", "Tabel №", "Xodim", "Lavozim",
+  "Texnika", "Soni", "Model", "Seriya / inventar №", "Holati", "Izoh",
 ];
 const EHTIYOJ_SARLAVHA = [
-  "Sana-vaqt", "Bo'lim", "Joy", "Xodim", "Lavozim",
+  "Sana-vaqt", "Bo'lim", "Joy", "Tabel №", "Xodim", "Lavozim",
   "Kerakli texnika", "Soni", "Nima uchun", "Shoshilinch",
 ];
 // Ro'yxatda yo'q xodim — ismini o'zi yozadi
@@ -116,7 +121,7 @@ function tekshir(d, royxat) {
   const joy = xodimlar(royxat, d.bolim, d.joy);
   if (!joy) return { xato: d.bolim && !(royxat.bolimlar || []).some((x) => x.kalit === d.bolim) ? "bolim" : "joy" };
 
-  let ism, lavozim;
+  let ism, lavozim, tabel = "";
   if (d.xodim === YOQ) {
     ism = qisqa(d.ism, 80);
     lavozim = qisqa(d.lavozim, 60);
@@ -126,7 +131,9 @@ function tekshir(d, royxat) {
     const x = joy.xodimlar.find((v) => v.ism === d.xodim);
     if (!x) return { xato: "xodim" };
     ({ ism, lavozim } = x);
+    tabel = String(x.tabel || "");
   }
+  const turlar = turlarOl(joy.bolim);
 
   const texnikaYoq = d.texnika_yoq === true;
   const xom = Array.isArray(d.texnika) ? d.texnika : [];
@@ -136,12 +143,14 @@ function tekshir(d, royxat) {
   if (!texnikaYoq) {
     for (let i = 0; i < xom.length; i++) {
       const t = xom[i] || {};
-      if (!TURLAR.includes(t.turi)) return { xato: "texnika_turi", qator: i };
+      if (!turlar.includes(t.turi)) return { xato: "texnika_turi", qator: i };
+      const soni = t.soni === undefined || t.soni === "" ? 1 : Number(t.soni);
+      if (!Number.isInteger(soni) || soni < 1 || soni > MAX_SONI) return { xato: "texnika_soni", qator: i };
       if (!Object.prototype.hasOwnProperty.call(HOLATLAR, t.holat)) return { xato: "texnika_holat", qator: i };
       const izoh = qisqa(t.izoh, 200);
-      if (t.turi === "Boshqa" && !izoh) return { xato: "texnika_boshqa", qator: i };
+      if (t.turi === BOSHQA && !izoh) return { xato: "texnika_boshqa", qator: i };
       texnika.push({
-        turi: t.turi, model: qisqa(t.model, 80), seriya: qisqa(t.seriya, 60),
+        turi: t.turi, soni, model: qisqa(t.model, 80), seriya: qisqa(t.seriya, 120),
         holat: HOLATLAR[t.holat], izoh,
       });
     }
@@ -152,9 +161,9 @@ function tekshir(d, royxat) {
   const ehtiyoj = [];
   for (let i = 0; i < xomE.length; i++) {
     const e = xomE[i] || {};
-    if (!TURLAR.includes(e.turi)) return { xato: "ehtiyoj_turi", qator: i };
+    if (!turlar.includes(e.turi)) return { xato: "ehtiyoj_turi", qator: i };
     const soni = Number(e.soni);
-    if (!Number.isInteger(soni) || soni < 1 || soni > 20) return { xato: "ehtiyoj_soni", qator: i };
+    if (!Number.isInteger(soni) || soni < 1 || soni > MAX_SONI) return { xato: "ehtiyoj_soni", qator: i };
     const sabab = qisqa(e.sabab, 300);
     if (!sabab) return { xato: "ehtiyoj_sabab", qator: i };
     ehtiyoj.push({ turi: e.turi, soni, sabab, shoshilinch: e.shoshilinch === true });
@@ -162,7 +171,7 @@ function tekshir(d, royxat) {
 
   return {
     javob: {
-      bolim: joy.bolim.nom, joy: joy.joy, ism, lavozim,
+      bolim: joy.bolim.nom, joy: joy.joy, tabel, ism, lavozim,
       royxatdaYoq: d.xodim === YOQ, texnikaYoq, texnika, ehtiyoj,
     },
   };
@@ -171,10 +180,10 @@ function tekshir(d, royxat) {
 /* ---------------- yozuvlar ---------------- */
 
 function qatorlar(j, sana) {
-  const bosh = [sana, j.bolim, j.joy || "—", xavfsiz(j.ism), xavfsiz(j.lavozim)];
+  const bosh = [sana, j.bolim, j.joy || "—", j.tabel || "", xavfsiz(j.ism), xavfsiz(j.lavozim)];
   const royxat = j.texnikaYoq
-    ? [[...bosh, "— texnika yo'q —", "", "", "", ""]]
-    : j.texnika.map((t) => [...bosh, t.turi, xavfsiz(t.model), xavfsiz(t.seriya), t.holat, xavfsiz(t.izoh)]);
+    ? [[...bosh, "— texnika yo'q —", "", "", "", "", ""]]
+    : j.texnika.map((t) => [...bosh, t.turi, t.soni, xavfsiz(t.model), xavfsiz(t.seriya), t.holat, xavfsiz(t.izoh)]);
   const ehtiyoj = j.ehtiyoj.map((e) => [...bosh, e.turi, e.soni, xavfsiz(e.sabab), e.shoshilinch ? "Ha" : "Yo'q"]);
   return { royxat, ehtiyoj };
 }
@@ -189,10 +198,11 @@ function bitrixMatni(j, izoh) {
   if (j.texnikaYoq) {
     q.push("Korxona texnikasi: yo'q");
   } else {
-    q.push(`Korxona texnikasi (${j.texnika.length}):`);
+    q.push(`Korxona texnikasi (${j.texnika.reduce((n, t) => n + t.soni, 0)} dona):`);
     j.texnika.forEach((t, i) => {
       const qism = [t.model, t.seriya ? `№ ${t.seriya}` : "", t.izoh].filter(Boolean).map(bb).join(", ");
-      q.push(`${i + 1}. ${t.turi}${qism ? " — " + qism : ""} · ${t.holat === "Ishlaydi" ? "✅" : "⚠️"} ${t.holat}`);
+      q.push(`${i + 1}. ${t.turi}${t.soni > 1 ? ` × ${t.soni}` : ""}${qism ? " — " + qism : ""}`
+        + ` · ${t.holat === "Ishlaydi" ? "✅" : "⚠️"} ${t.holat}`);
     });
   }
   if (j.ehtiyoj.length) {
@@ -303,9 +313,8 @@ exports.handler = async (event, context) => {
       if (!kodTogri(kalit, q.kod)) return javob(403, { xato: "kod" });
       const r = royxatOl(kalit);
       return javob(200, {
-        turlar: TURLAR,
         bolimlar: (r.bolimlar || []).map((b) => ({
-          kalit: b.kalit, nom: b.nom,
+          kalit: b.kalit, nom: b.nom, turlar: turlarOl(b),
           ...(b.joylar
             ? { joylar: b.joylar.map((j) => ({ nom: j.nom, xodimlar: (j.xodimlar || []).map((x) => ({ ism: x.ism, lavozim: x.lavozim })) })) }
             : { xodimlar: (b.xodimlar || []).map((x) => ({ ism: x.ism, lavozim: x.lavozim })) }),
@@ -377,6 +386,6 @@ exports.handler = async (event, context) => {
 
 // Sinovlar va shifrlash vositasi uchun
 exports._ichki = {
-  TURLAR, HOLATLAR, YOQ, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
+  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
   shifrla, ochish, havolaKodi, kodTogri, tekshir, qatorlar, bitrixMatni, xavfsiz,
 };

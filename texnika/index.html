@@ -300,16 +300,16 @@
 
       <div class="section maydon" id="m_texnika">
         <p class="bosqich">3-qadam</p>
-        <p class="q">Korxona sizga bergan texnika</p>
-        <p class="izoh">Har bir texnikani alohida qo'shing. Seriya yoki inventar raqami texnikaning orqasidagi yorliqda bo'ladi — bo'lmasa bo'sh qoldiring.</p>
-        <label class="opt"><input type="checkbox" id="texnikaYoq"><span>Menga korxona texnikasi berilmagan</span></label>
+        <p class="q" id="t_sarlavha">Korxona sizga bergan texnika</p>
+        <p class="izoh" id="t_izoh">Har bir turni alohida qo'shing. Seriya yoki inventar raqami texnikaning orqasidagi yorliqda bo'ladi — bo'lmasa bo'sh qoldiring.</p>
+        <label class="opt"><input type="checkbox" id="texnikaYoq"><span id="t_yoq">Menga korxona texnikasi berilmagan</span></label>
         <div id="texnikalar"></div>
         <button type="button" class="qoshish" id="texnikaQosh">+ Texnika qo'shish</button>
       </div>
 
       <div class="section maydon" id="m_ehtiyoj">
         <p class="bosqich">4-qadam</p>
-        <p class="q">Ishingiz uchun qanday texnika yetishmaydi?</p>
+        <p class="q" id="e_sarlavha">Ishingiz uchun qanday texnika yetishmaydi?</p>
         <p class="izoh">Hammasi yetarli bo'lsa — bu qadamni o'tkazib yuboring.</p>
         <div id="ehtiyojlar"></div>
         <button type="button" class="qoshish" id="ehtiyojQosh">+ Yetishmayotgan texnika</button>
@@ -416,8 +416,28 @@
     return b.xodimlar || [];
   }
 
+  var MATNLAR = {
+    dokon: {
+      t_sarlavha: "Filialdagi korxona texnikasi",
+      t_izoh: "Har bir turni alohida qo'shing, bir xil texnika bir nechta bo'lsa — sonini yozing. Seriya yoki inventar raqami texnikaning yorlig'ida bo'ladi — bo'lmasa bo'sh qoldiring.",
+      t_yoq: "Filialda korxona texnikasi yo'q",
+      e_sarlavha: "Filialga qanday texnika yetishmaydi?"
+    },
+    boshqa: {
+      t_sarlavha: "Korxona sizga bergan texnika",
+      t_izoh: "Har bir turni alohida qo'shing. Seriya yoki inventar raqami texnikaning orqasidagi yorliqda bo'ladi — bo'lmasa bo'sh qoldiring.",
+      t_yoq: "Menga korxona texnikasi berilmagan",
+      e_sarlavha: "Ishingiz uchun qanday texnika yetishmaydi?"
+    }
+  };
+
   function bolimOzgardi(){
     var b = bolimOl();
+    texnikalarEl.innerHTML = "";
+    ehtiyojlarEl.innerHTML = "";
+    texnikaYoq.checked = false;
+    var m = MATNLAR[b && b.joylar ? "dokon" : "boshqa"];
+    for(var id in m) document.getElementById(id).textContent = m[id];
     var mJoy = document.getElementById("m_joy");
     mJoy.hidden = !(b && b.joylar);
     if(b && b.joylar){
@@ -464,7 +484,7 @@
 
   function turSelect(){
     var s = el("select", { "data-k": "turi" }, [el("option", { value: "", matn: "— turini tanlang —" })]);
-    MALUMOT.turlar.forEach(function(t){ s.appendChild(el("option", { value: t, matn: t })); });
+    ((bolimOl() || {}).turlar || []).forEach(function(t){ s.appendChild(el("option", { value: t, matn: t })); });
     return s;
   }
 
@@ -497,8 +517,10 @@
     var k = el("div", { sinf: "karta", "data-holat": id }, [
       el("p", { sinf: "sarlavha" }), ochir,
       maydon("Turi", tur),
-      maydon("Brend / model", el("input", { "data-k": "model", maxlength: "80", placeholder: "masalan: HP ProDesk 400" })),
-      maydon("Seriya yoki inventar raqami", el("input", { "data-k": "seriya", maxlength: "60", autocapitalize: "characters" })),
+      maydon("Soni", el("input", { "data-k": "soni", type: "number", inputmode: "numeric", min: "1", max: "50", value: "1" })),
+      maydon("Brend / model", el("input", { "data-k": "model", maxlength: "80", placeholder: "masalan: Samsung, HP" })),
+      maydon("Seriya yoki inventar raqami", el("input", { "data-k": "seriya", maxlength: "120", autocapitalize: "characters" }),
+             "Bir nechta bo'lsa — vergul bilan yozing"),
       el("div", { sinf: "maydon" }, [el("label", { matn: "Holati" }), holat]),
       izohM
     ]);
@@ -515,7 +537,7 @@
     var k = el("div", { sinf: "karta" }, [
       el("p", { sinf: "sarlavha" }), ochir,
       maydon("Qanday texnika kerak?", turSelect()),
-      maydon("Soni", el("input", { "data-k": "soni", type: "number", inputmode: "numeric", min: "1", max: "20", value: "1" })),
+      maydon("Soni", el("input", { "data-k": "soni", type: "number", inputmode: "numeric", min: "1", max: "50", value: "1" })),
       maydon("Nima uchun kerak?", el("input", { "data-k": "sabab", maxlength: "300", placeholder: "masalan: kassada chek chiqarish uchun" })),
       el("div", { sinf: "maydon" }, [shosh])
     ]);
@@ -563,9 +585,10 @@
     texnika: ["Kamida bitta texnika qo'shing yoki «Menga korxona texnikasi berilmagan» ni belgilang.", "m_texnika"],
     texnika_turi: ["Texnika turini tanlang."],
     texnika_holat: ["Texnika holatini tanlang."],
+    texnika_soni: ["Sonini 1 dan 50 gacha yozing."],
     texnika_boshqa: ["«Boshqa» uchun qanday texnika ekanini yozing."],
     ehtiyoj_turi: ["Qanday texnika kerakligini tanlang."],
-    ehtiyoj_soni: ["Sonini 1 dan 20 gacha yozing."],
+    ehtiyoj_soni: ["Sonini 1 dan 50 gacha yozing."],
     ehtiyoj_sabab: ["Nima uchun kerakligini qisqa yozing."],
     kod: ["Havola eskirgan. Rahbaringizdan yangi havolani so'rang."],
     umumiy: ["Yuborib bo'lmadi. Internetni tekshirib, qayta urinib ko'ring."]
@@ -573,7 +596,7 @@
 
   // Kartadagi xato — o'sha kartaning qaysi maydoni
   var KARTA_MAYDON = {
-    texnika_turi: "turi", texnika_boshqa: "izoh", ehtiyoj_turi: "turi",
+    texnika_turi: "turi", texnika_soni: "soni", texnika_boshqa: "izoh", ehtiyoj_turi: "turi",
     ehtiyoj_soni: "soni", ehtiyoj_sabab: "sabab"
   };
 
@@ -607,7 +630,7 @@
     if(!d.texnika_yoq){
       Array.prototype.forEach.call(texnikalarEl.children, function(k){
         d.texnika.push({
-          turi: qiymat(k, "turi"), model: qiymat(k, "model"), seriya: qiymat(k, "seriya"),
+          turi: qiymat(k, "turi"), soni: Number(qiymat(k, "soni")), model: qiymat(k, "model"), seriya: qiymat(k, "seriya"),
           holat: tanlangan(k.getAttribute("data-holat"), k), izoh: qiymat(k, "izoh")
         });
       });
@@ -621,6 +644,8 @@
     return d;
   }
 
+  function butunSon(n){ return n >= 1 && n <= 50 && Math.floor(n) === n; }
+
   // Server bilan bir xil tekshiruv — xato darhol, to'g'ri joyda ko'rinadi
   function oldindanTekshir(d){
     if(!d.bolim) return ["bolim"];
@@ -631,12 +656,13 @@
     if(!d.texnika_yoq && !d.texnika.length) return ["texnika"];
     for(var i = 0; i < d.texnika.length; i++){
       if(!d.texnika[i].turi) return ["texnika_turi", i];
+      if(!butunSon(d.texnika[i].soni)) return ["texnika_soni", i];
       if(d.texnika[i].turi === "Boshqa" && !d.texnika[i].izoh) return ["texnika_boshqa", i];
     }
     for(var j = 0; j < d.ehtiyoj.length; j++){
       var e = d.ehtiyoj[j];
       if(!e.turi) return ["ehtiyoj_turi", j];
-      if(!(e.soni >= 1 && e.soni <= 20 && Math.floor(e.soni) === e.soni)) return ["ehtiyoj_soni", j];
+      if(!butunSon(e.soni)) return ["ehtiyoj_soni", j];
       if(!e.sabab) return ["ehtiyoj_sabab", j];
     }
     return null;

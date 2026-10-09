@@ -25,14 +25,16 @@ const KALIT = crypto.randomBytes(32);
 const KOD = _ichki.havolaKodi(KALIT);
 const ROYXAT = {
   bolimlar: [
-    { kalit: "dokon", nom: "Do'kon", joylar: [
+    { kalit: "dokon", nom: "Do'kon", turlar: ["Antikraja", "Konditsioner", "Chek printeri", "Skaner"], joylar: [
       { nom: "Chilonzor", xodimlar: [
-        { ism: "Toshmatov Sardor Akmal o'g'li", lavozim: "Filial rahbari" },
-        { ism: "Aliyeva Malika Rustam qizi", lavozim: "Kassir" },
+        { tabel: "901", ism: "Toshmatov Sardor Akmal o'g'li", lavozim: "Filial rahbari" },
+        { tabel: "902", ism: "Aliyeva Malika Rustam qizi", lavozim: "Kassir" },
       ] },
       { nom: "Andijon", xodimlar: [] },
     ] },
-    { kalit: "ofis", nom: "Ofis", xodimlar: [{ ism: "Karimova Dilnoza", lavozim: "Buxgalter" }] },
+    { kalit: "ofis", nom: "Ofis", turlar: ["Noutbuk / kompyuter", "Monitor"],
+      xodimlar: [{ ism: "Karimova Dilnoza", lavozim: "Buxgalter" }] },
+    { kalit: "ombor", nom: "Ombor", xodimlar: [] },
   ],
 };
 // Shifrlangan ro'yxat moduli — haqiqiy fayl o'rniga
@@ -65,10 +67,10 @@ const bitrix = () => chaqiruvlar.filter((c) => c.url.includes("/rest/"));
 const ASOS = {
   kod: KOD, bolim: "dokon", joy: "Chilonzor", xodim: "Aliyeva Malika Rustam qizi",
   texnika: [
-    { turi: "Kompyuter (tizim bloki)", model: "HP ProDesk 400", seriya: "5CD123", holat: "yaxshi" },
-    { turi: "Chek printer", model: "Xprinter", seriya: "", holat: "tamir" },
+    { turi: "Konditsioner", soni: 3, model: "Artel", seriya: "A1, A2, A3", holat: "yaxshi" },
+    { turi: "Chek printeri", model: "Xprinter", seriya: "", holat: "tamir" },
   ],
-  ehtiyoj: [{ turi: "Shtrix-kod skaneri", soni: 1, sabab: "kassada sekin", shoshilinch: true }],
+  ehtiyoj: [{ turi: "Skaner", soni: 1, sabab: "kassada sekin", shoshilinch: true }],
 };
 
 let otdi = 0;
@@ -105,15 +107,22 @@ async function sinov(nom, fn) {
     assert.strictEqual((await get({ kod: "notogri" })).statusCode, 403);
   });
 
-  await sinov("GET to'g'ri kod — bo'limlar, joylar, xodimlar, turlar", async () => {
+  await sinov("GET to'g'ri kod — bo'limlar, joylar, xodimlar, har bo'lim o'z turlari", async () => {
     muhit();
     const r = await get({ kod: KOD });
     assert.strictEqual(r.statusCode, 200);
     const b = tana(r);
-    assert.strictEqual(b.bolimlar.length, 2);
+    assert.strictEqual(b.bolimlar.length, 3);
     assert.strictEqual(b.bolimlar[0].joylar[0].xodimlar[1].lavozim, "Kassir");
+    assert.ok(!("tabel" in b.bolimlar[0].joylar[0].xodimlar[1]), "tabel sahifaga berilmaydi");
     assert.strictEqual(b.bolimlar[1].xodimlar[0].ism, "Karimova Dilnoza");
-    assert.ok(b.turlar.includes("Boshqa"));
+    assert.deepStrictEqual(b.bolimlar[0].turlar, ["Antikraja", "Konditsioner", "Chek printeri", "Skaner", "Boshqa"]);
+    assert.deepStrictEqual(b.bolimlar[1].turlar, ["Noutbuk / kompyuter", "Monitor", "Boshqa"]);
+    assert.deepStrictEqual(b.bolimlar[2].turlar, [..._ichki.ZAXIRA_TURLAR, "Boshqa"]);
+  });
+
+  await sinov("turlar: takror va «Boshqa» bitta, oxirida", () => {
+    assert.deepStrictEqual(_ichki.turlarOl({ turlar: ["Boshqa", "A", "A", ""] }), ["A", "Boshqa"]);
   });
 
   await sinov("GET kalit sozlanmagan — 503", async () => {
@@ -141,18 +150,21 @@ async function sinov(nom, fn) {
     assert.strictEqual(ehtiyoj.length, 1);
     assert.deepStrictEqual(royxat[0].tana.headers, _ichki.ROYXAT_SARLAVHA);
     const q = royxat.map((c) => c.tana.row);
-    assert.deepStrictEqual(q[0].slice(1), ["Do'kon", "Chilonzor", "Aliyeva Malika Rustam qizi", "Kassir",
-      "Kompyuter (tizim bloki)", "HP ProDesk 400", "5CD123", "Ishlaydi", ""]);
-    assert.strictEqual(q[1][8], "Ta'mir kerak");
+    assert.deepStrictEqual(q[0].slice(1), ["Do'kon", "Chilonzor", "902", "Aliyeva Malika Rustam qizi", "Kassir",
+      "Konditsioner", 3, "Artel", "A1, A2, A3", "Ishlaydi", ""]);
+    assert.strictEqual(q[1][7], 1, "soni berilmasa — 1");
+    assert.strictEqual(q[1][10], "Ta'mir kerak");
+    assert.strictEqual(q[0].length, _ichki.ROYXAT_SARLAVHA.length);
     assert.match(q[0][0], /^\d\d\.\d\d\.\d{4} \d\d:\d\d:\d\d$/);
-    assert.deepStrictEqual(ehtiyoj[0].tana.row.slice(5), ["Shtrix-kod skaneri", 1, "kassada sekin", "Ha"]);
+    assert.deepStrictEqual(ehtiyoj[0].tana.row.slice(3), ["902", "Aliyeva Malika Rustam qizi", "Kassir", "Skaner", 1, "kassada sekin", "Ha"]);
+    assert.strictEqual(ehtiyoj[0].tana.row.length, _ichki.EHTIYOJ_SARLAVHA.length);
     const b = bitrix();
     assert.strictEqual(b.length, 1);
     assert.ok(b[0].url.endsWith("/im.message.add.json"));
     assert.strictEqual(b[0].tana.DIALOG_ID, "53");
     const m = b[0].tana.MESSAGE;
-    for (const t of ["Chilonzor", "Aliyeva Malika Rustam qizi", "Kassir", "HP ProDesk 400", "№ 5CD123",
-      "⚠️ Ta'mir kerak", "Shtrix-kod skaneri × 1", "shoshilinch"]) {
+    for (const t of ["Chilonzor", "Aliyeva Malika Rustam qizi", "Kassir", "Konditsioner × 3 — Artel, № A1, A2, A3",
+      "(4 dona)", "⚠️ Ta'mir kerak", "Skaner × 1", "shoshilinch"]) {
       assert.ok(m.includes(t), `Bitrix xabarida yo'q: ${t}\n${m}`);
     }
   });
@@ -167,7 +179,7 @@ async function sinov(nom, fn) {
     muhit();
     const r = await post({ ...ASOS, joy: "Andijon", xodim: _ichki.YOQ, ism: "Yangi Xodim", lavozim: "Sotuvchi" });
     assert.strictEqual(r.statusCode, 200, r.body);
-    assert.strictEqual(sheets()[0].tana.row[3], "Yangi Xodim");
+    assert.deepStrictEqual(sheets()[0].tana.row.slice(3, 6), ["", "Yangi Xodim", "Sotuvchi"]);
     assert.ok(bitrix()[0].tana.MESSAGE.includes("ro'yxatda yo'q edi"));
     assert.strictEqual(tana(await post({ ...ASOS, xodim: _ichki.YOQ, ism: "", lavozim: "x" })).xato, "ism");
     assert.strictEqual(tana(await post({ ...ASOS, xodim: _ichki.YOQ, ism: "A", lavozim: "" })).xato, "lavozim");
@@ -179,7 +191,8 @@ async function sinov(nom, fn) {
     assert.strictEqual(r.statusCode, 200, r.body);
     const s = sheets();
     assert.strictEqual(s.length, 1);
-    assert.deepStrictEqual(s[0].tana.row.slice(1, 6), ["Ofis", "—", "Karimova Dilnoza", "Buxgalter", "— texnika yo'q —"]);
+    assert.deepStrictEqual(s[0].tana.row.slice(1, 7), ["Ofis", "—", "", "Karimova Dilnoza", "Buxgalter", "— texnika yo'q —"]);
+    assert.strictEqual(s[0].tana.row.length, _ichki.ROYXAT_SARLAVHA.length);
     assert.ok(bitrix()[0].tana.MESSAGE.includes("Korxona texnikasi: yo'q"));
   });
 
@@ -193,11 +206,17 @@ async function sinov(nom, fn) {
     assert.deepStrictEqual(await x({ texnika: [ASOS.texnika[0], { turi: "Boshqa", holat: "yaxshi" }] }),
       { xato: "texnika_boshqa", qator: 1 });
     assert.deepStrictEqual(await x({ texnika: [{ turi: "Muzlatgich", holat: "yaxshi" }] }), { xato: "texnika_turi", qator: 0 });
-    assert.deepStrictEqual(await x({ texnika: [{ turi: "Monitor", holat: "zor" }] }), { xato: "texnika_holat", qator: 0 });
+    // boshqa bo'limning turi — o'tmaydi
+    assert.deepStrictEqual(await x({ texnika: [{ turi: "Monitor", holat: "yaxshi" }] }), { xato: "texnika_turi", qator: 0 });
+    assert.deepStrictEqual(await x({ texnika: [{ turi: "Skaner", holat: "zor" }] }), { xato: "texnika_holat", qator: 0 });
+    assert.deepStrictEqual(await x({ texnika: [{ turi: "Skaner", soni: 0, holat: "yaxshi" }] }), { xato: "texnika_soni", qator: 0 });
+    assert.deepStrictEqual(await x({ texnika: [{ turi: "Skaner", soni: 51, holat: "yaxshi" }] }), { xato: "texnika_soni", qator: 0 });
+    assert.deepStrictEqual(await x({ texnika: [{ turi: "Skaner", soni: 1.5, holat: "yaxshi" }] }), { xato: "texnika_soni", qator: 0 });
     assert.strictEqual((await x({ texnika: Array(16).fill(ASOS.texnika[0]) })).xato, "texnika_kop");
-    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Monitor", soni: 0, sabab: "a" }] }), { xato: "ehtiyoj_soni", qator: 0 });
-    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Monitor", soni: 2.5, sabab: "a" }] }), { xato: "ehtiyoj_soni", qator: 0 });
-    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Monitor", soni: 1, sabab: " " }] }), { xato: "ehtiyoj_sabab", qator: 0 });
+    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Monitor", soni: 1, sabab: "a" }] }), { xato: "ehtiyoj_turi", qator: 0 });
+    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Skaner", soni: 0, sabab: "a" }] }), { xato: "ehtiyoj_soni", qator: 0 });
+    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Skaner", soni: 2.5, sabab: "a" }] }), { xato: "ehtiyoj_soni", qator: 0 });
+    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Skaner", soni: 1, sabab: " " }] }), { xato: "ehtiyoj_sabab", qator: 0 });
     assert.strictEqual(chaqiruvlar.length, 0, "xato so'rov hech qayerga yuborilmasin");
   });
 
@@ -215,10 +234,10 @@ async function sinov(nom, fn) {
 
   await sinov("POST: formula va BB-kod in'ektsiyasi", async () => {
     muhit();
-    await post({ ...ASOS, texnika: [{ turi: "Monitor", model: "=HYPERLINK(\"x\")", seriya: "+998", holat: "yaxshi", izoh: "[url=http://x]y[/url]" }] });
+    await post({ ...ASOS, texnika: [{ turi: "Skaner", model: "=HYPERLINK(\"x\")", seriya: "+998", holat: "yaxshi", izoh: "[url=http://x]y[/url]" }] });
     const row = sheets()[0].tana.row;
-    assert.strictEqual(row[6], "'=HYPERLINK(\"x\")");
-    assert.strictEqual(row[7], "'+998");
+    assert.strictEqual(row[8], "'=HYPERLINK(\"x\")");
+    assert.strictEqual(row[9], "'+998");
     const m = bitrix()[0].tana.MESSAGE;
     assert.ok(!m.includes("[url") && m.includes("(url=http://x)"));
   });
@@ -266,7 +285,7 @@ async function sinov(nom, fn) {
     sheetsJavob = async (url, opts) => {
       const t = JSON.parse(opts.body);
       if (t.sheet === "Texnika ro'yxati") {
-        if (ochiq === 0 && !birinchiTugadi && t.row[5] !== "Kompyuter (tizim bloki)") xato = true;
+        if (ochiq === 0 && !birinchiTugadi && t.row[6] !== "Konditsioner") xato = true;
         ochiq++;
         await new Promise((r) => setTimeout(r, 20));
         ochiq--;
