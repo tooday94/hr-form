@@ -26,13 +26,15 @@ const HOLATLAR = { yaxshi: "Ishlaydi", tamir: "Ta'mir kerak", buzuq: "Ishlamaydi
 // bo'lishi kerak (user 2026-10-09). Forma ularni oldindan qo'yib beradi;
 // filialda yo'q bo'lsa soni 0 yoziladi.
 const YOQ_HOLAT = "Yo'q";
+// Ekran o'lchami shart bo'lgan texnika (user 2026-10-09: monitorning o'lchami)
+const OLCHAMLI = /monitor/i;
 const MAX_TEXNIKA = 25;
-const MAX_EHTIYOJ = 8;
+const MAX_EHTIYOJ = 15;
 const MAX_SONI = 50;
 
 const ROYXAT_SARLAVHA = [
   "Sana-vaqt", "Bo'lim", "Joy", "Tabel №", "Xodim", "Lavozim",
-  "Texnika", "Soni", "Model", "Seriya / inventar №", "Holati", "Izoh",
+  "Texnika", "Soni", "Ekran o'lchami", "Model", "Seriya / inventar №", "Holati", "Izoh",
 ];
 const EHTIYOJ_SARLAVHA = [
   "Sana-vaqt", "Bo'lim", "Joy", "Tabel №", "Xodim", "Lavozim",
@@ -157,12 +159,14 @@ function tekshir(d, royxat) {
       const izoh = qisqa(t.izoh, 200);
       if (t.turi === BOSHQA && !izoh) return { xato: "texnika_boshqa", qator: i };
       if (soni === 0) {
-        texnika.push({ turi: t.turi, soni, model: "", seriya: "", holat: YOQ_HOLAT, izoh });
+        texnika.push({ turi: t.turi, soni, olcham: "", model: "", seriya: "", holat: YOQ_HOLAT, izoh });
         continue;
       }
       if (!Object.prototype.hasOwnProperty.call(HOLATLAR, t.holat)) return { xato: "texnika_holat", qator: i };
+      const olcham = qisqa(t.olcham, 30);
+      if (OLCHAMLI.test(t.turi) && !olcham) return { xato: "texnika_olcham", qator: i };
       texnika.push({
-        turi: t.turi, soni, model: qisqa(t.model, 80), seriya: qisqa(t.seriya, 120),
+        turi: t.turi, soni, olcham, model: qisqa(t.model, 80), seriya: qisqa(t.seriya, 120),
         holat: HOLATLAR[t.holat], izoh,
       });
     }
@@ -177,9 +181,11 @@ function tekshir(d, royxat) {
     if (!turlar.includes(e.turi)) return { xato: "ehtiyoj_turi", qator: i };
     const soni = Number(e.soni);
     if (!Number.isInteger(soni) || soni < 1 || soni > MAX_SONI) return { xato: "ehtiyoj_soni", qator: i };
+    // Sabab ixtiyoriy (forma soddaligi uchun); "Boshqa" bo'lsa nomi shart
     const sabab = qisqa(e.sabab, 300);
-    if (!sabab) return { xato: "ehtiyoj_sabab", qator: i };
-    ehtiyoj.push({ turi: e.turi, soni, sabab, shoshilinch: e.shoshilinch === true });
+    const nomi = qisqa(e.nomi, 80);
+    if (e.turi === BOSHQA && !nomi) return { xato: "ehtiyoj_boshqa", qator: i };
+    ehtiyoj.push({ turi: e.turi === BOSHQA ? `${BOSHQA}: ${nomi}` : e.turi, soni, sabab, shoshilinch: e.shoshilinch === true });
   }
 
   return {
@@ -195,9 +201,10 @@ function tekshir(d, royxat) {
 function qatorlar(j, sana) {
   const bosh = [sana, j.bolim, j.joy || "—", j.tabel || "", xavfsiz(j.ism), xavfsiz(j.lavozim)];
   const royxat = j.texnikaYoq
-    ? [[...bosh, "— texnika yo'q —", "", "", "", "", ""]]
-    : j.texnika.map((t) => [...bosh, t.turi, t.soni, xavfsiz(t.model), xavfsiz(t.seriya), t.holat, xavfsiz(t.izoh)]);
-  const ehtiyoj = j.ehtiyoj.map((e) => [...bosh, e.turi, e.soni, xavfsiz(e.sabab), e.shoshilinch ? "Ha" : "Yo'q"]);
+    ? [[...bosh, "— texnika yo'q —", "", "", "", "", "", ""]]
+    : j.texnika.map((t) => [...bosh, t.turi, t.soni, xavfsiz(t.olcham), xavfsiz(t.model), xavfsiz(t.seriya),
+      t.holat, xavfsiz(t.izoh)]);
+  const ehtiyoj = j.ehtiyoj.map((e) => [...bosh, xavfsiz(e.turi), e.soni, xavfsiz(e.sabab), e.shoshilinch ? "Ha" : "Yo'q"]);
   return { royxat, ehtiyoj };
 }
 
@@ -218,14 +225,14 @@ function bitrixMatni(j, izoh) {
         q.push(`${i + 1}. ${t.turi} · ❌ Filialda yo'q${t.izoh ? " — " + bb(t.izoh) : ""}`);
         return;
       }
-      q.push(`${i + 1}. ${t.turi}${t.soni > 1 ? ` × ${t.soni}` : ""}${qism ? " — " + qism : ""}`
+      q.push(`${i + 1}. ${t.turi}${t.soni > 1 ? ` × ${t.soni}` : ""}${t.olcham ? ` (${bb(t.olcham)}")` : ""}${qism ? " — " + qism : ""}`
         + ` · ${t.holat === "Ishlaydi" ? "✅" : "⚠️"} ${t.holat}`);
     });
   }
   if (j.ehtiyoj.length) {
     q.push("", "Yetishmaydi:");
     j.ehtiyoj.forEach((e) => {
-      q.push(`• ${e.turi} × ${e.soni}${e.shoshilinch ? " — [b]shoshilinch[/b]" : ""}: ${bb(e.sabab)}`);
+      q.push(`• ${bb(e.turi)} × ${e.soni}${e.shoshilinch ? " — [b]shoshilinch[/b]" : ""}${e.sabab ? ": " + bb(e.sabab) : ""}`);
     });
   }
   if (izoh) q.push("", izoh);
@@ -403,6 +410,6 @@ exports.handler = async (event, context) => {
 
 // Sinovlar va shifrlash vositasi uchun
 exports._ichki = {
-  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, YOQ_HOLAT, MAX_TEXNIKA, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
+  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, YOQ_HOLAT, MAX_TEXNIKA, OLCHAMLI, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
   shifrla, ochish, havolaKodi, kodTogri, tekshir, qatorlar, bitrixMatni, xavfsiz,
 };

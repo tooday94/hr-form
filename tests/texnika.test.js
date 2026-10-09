@@ -154,10 +154,10 @@ async function sinov(nom, fn) {
     assert.deepStrictEqual(royxat[0].tana.headers, _ichki.ROYXAT_SARLAVHA);
     const q = royxat.map((c) => c.tana.row);
     assert.deepStrictEqual(q[0].slice(1), ["Do'kon", "Chilonzor", "902", "Aliyeva Malika Rustam qizi", "Kassir",
-      "Konditsioner", 3, "Artel", "A1, A2, A3", "Ishlaydi", ""]);
+      "Konditsioner", 3, "", "Artel", "A1, A2, A3", "Ishlaydi", ""]);
     assert.strictEqual(q[1][7], 1, "soni berilmasa — 1");
-    assert.strictEqual(q[1][10], "Ta'mir kerak");
-    assert.deepStrictEqual(q[2].slice(6, 11), ["Antikraja", 0, "", "", "Yo'q"], "0 — filialda yo'q, model yozilmaydi");
+    assert.strictEqual(q[1][11], "Ta'mir kerak");
+    assert.deepStrictEqual(q[2].slice(6, 12), ["Antikraja", 0, "", "", "", "Yo'q"], "0 — filialda yo'q, model yozilmaydi");
     assert.strictEqual(q[0].length, _ichki.ROYXAT_SARLAVHA.length);
     assert.match(q[0][0], /^\d\d\.\d\d\.\d{4} \d\d:\d\d:\d\d$/);
     assert.deepStrictEqual(ehtiyoj[0].tana.row.slice(3), ["902", "Aliyeva Malika Rustam qizi", "Kassir", "Skaner", 1, "kassada sekin", "Ha"]);
@@ -229,8 +229,30 @@ async function sinov(nom, fn) {
     assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Monitor", soni: 1, sabab: "a" }] }), { xato: "ehtiyoj_turi", qator: 0 });
     assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Skaner", soni: 0, sabab: "a" }] }), { xato: "ehtiyoj_soni", qator: 0 });
     assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Skaner", soni: 2.5, sabab: "a" }] }), { xato: "ehtiyoj_soni", qator: 0 });
-    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Skaner", soni: 1, sabab: " " }] }), { xato: "ehtiyoj_sabab", qator: 0 });
+    assert.deepStrictEqual(await x({ ehtiyoj: [{ turi: "Boshqa", soni: 1 }] }), { xato: "ehtiyoj_boshqa", qator: 0 });
     assert.strictEqual(chaqiruvlar.length, 0, "xato so'rov hech qayerga yuborilmasin");
+  });
+
+  await sinov("POST: ehtiyoj — sabab ixtiyoriy, «Boshqa» nomi bilan", async () => {
+    muhit();
+    const r = await post({ ...ASOS, ehtiyoj: [{ turi: "Skaner", soni: 2 }, { turi: "Boshqa", nomi: "Televizor", soni: 1, sabab: "reklama uchun" }] });
+    assert.strictEqual(r.statusCode, 200, r.body);
+    const e = sheets().filter((c) => c.tana.sheet === "Texnika ehtiyoji").map((c) => c.tana.row.slice(6));
+    assert.deepStrictEqual(e, [["Skaner", 2, "", "Yo'q"], ["Boshqa: Televizor", 1, "reklama uchun", "Yo'q"]]);
+    const m = bitrix()[0].tana.MESSAGE;
+    assert.ok(m.includes("• Skaner × 2\n") && m.includes("• Boshqa: Televizor × 1: reklama uchun"), m);
+  });
+
+  await sinov("POST: monitor o'lchami shart, jadval va Bitrix'da ko'rinadi", async () => {
+    muhit();
+    const ofis = { ...ASOS, bolim: "ofis", joy: "", xodim: "Karimova Dilnoza", ehtiyoj: [] };
+    const xato = tana(await post({ ...ofis, texnika: [{ turi: "Noutbuk / kompyuter", holat: "yaxshi" }, { turi: "Monitor", soni: 2, holat: "yaxshi" }] }));
+    assert.deepStrictEqual(xato, { xato: "texnika_olcham", qator: 1 });
+    muhit();
+    const r = await post({ ...ofis, texnika: [{ turi: "Monitor", soni: 2, olcham: "24, 27", holat: "yaxshi" }] });
+    assert.strictEqual(r.statusCode, 200, r.body);
+    assert.deepStrictEqual(sheets()[0].tana.row.slice(6, 9), ["Monitor", 2, "24, 27"]);
+    assert.ok(bitrix()[0].tana.MESSAGE.includes('Monitor × 2 (24, 27")'), bitrix()[0].tana.MESSAGE);
   });
 
   await sinov("POST: noto'g'ri kod — 403, hech narsa yuborilmaydi", async () => {
@@ -248,10 +270,10 @@ async function sinov(nom, fn) {
   await sinov("POST: formula va BB-kod in'ektsiyasi", async () => {
     muhit();
     await post({ ...ASOS, bolim: "ofis", joy: "", xodim: "Karimova Dilnoza", ehtiyoj: [],
-      texnika: [{ turi: "Monitor", model: "=HYPERLINK(\"x\")", seriya: "+998", holat: "yaxshi", izoh: "[url=http://x]y[/url]" }] });
+      texnika: [{ turi: "Monitor", olcham: "24", model: "=HYPERLINK(\"x\")", seriya: "+998", holat: "yaxshi", izoh: "[url=http://x]y[/url]" }] });
     const row = sheets()[0].tana.row;
-    assert.strictEqual(row[8], "'=HYPERLINK(\"x\")");
-    assert.strictEqual(row[9], "'+998");
+    assert.strictEqual(row[9], "'=HYPERLINK(\"x\")");
+    assert.strictEqual(row[10], "'+998");
     const m = bitrix()[0].tana.MESSAGE;
     assert.ok(!m.includes("[url") && m.includes("(url=http://x)"));
   });
