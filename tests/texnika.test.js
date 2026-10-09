@@ -149,12 +149,12 @@ async function sinov(nom, fn) {
     assert.strictEqual(r.statusCode, 200, r.body);
     assert.deepStrictEqual(tana(r), { ok: true, jadval: "yozildi", bitrix: true });
     const s = sheets();
-    const royxat = s.filter((c) => c.tana.sheet === "Texnika — Do'kon");
-    const ehtiyoj = s.filter((c) => c.tana.sheet === "Texnika ehtiyoji");
-    assert.strictEqual(royxat.length, 4);
-    assert.strictEqual(ehtiyoj.length, 1);
-    assert.deepStrictEqual(royxat[0].tana.headers, _ichki.ROYXAT_SARLAVHA);
-    const q = royxat.map((c) => c.tana.row);
+    assert.strictEqual(s.length, 1, "jadvalga bitta so'rov");
+    assert.strictEqual(s[0].tana.sheet, "Texnika — Do'kon");
+    assert.deepStrictEqual(s[0].tana.headers, _ichki.ROYXAT_SARLAVHA);
+    const q = s[0].tana.rows;
+    assert.strictEqual(q.length, 5, "4 texnika + ketidan 1 yetishmaydi");
+    assert.ok(q.every((r) => r.length === _ichki.ROYXAT_SARLAVHA.length));
     assert.deepStrictEqual(q[0].slice(1), ["Do'kon", "Chilonzor", "902", "Aliyeva Malika Rustam qizi", "Kassir",
       "Konditsioner", 3, "", "Artel", "A1, A2, A3", "Ishlaydi", ""]);
     assert.strictEqual(q[1][7], 1, "soni berilmasa — 1");
@@ -162,8 +162,8 @@ async function sinov(nom, fn) {
     assert.deepStrictEqual(q[2].slice(6, 12), ["Antikraja", 0, "", "", "", "Yo'q"], "0 — filialda yo'q, model yozilmaydi");
     assert.strictEqual(q[0].length, _ichki.ROYXAT_SARLAVHA.length);
     assert.match(q[0][0], /^\d\d\.\d\d\.\d{4} \d\d:\d\d:\d\d$/);
-    assert.deepStrictEqual(ehtiyoj[0].tana.row.slice(3), ["902", "Aliyeva Malika Rustam qizi", "Kassir", "Skaner", 1, "kassada sekin", "Ha"]);
-    assert.strictEqual(ehtiyoj[0].tana.row.length, _ichki.EHTIYOJ_SARLAVHA.length);
+    assert.deepStrictEqual(q[4].slice(3), ["902", "Aliyeva Malika Rustam qizi", "Kassir",
+      "Skaner", 1, "", "", "", "Kerak — shoshilinch", "kassada sekin"]);
     const b = bitrix();
     assert.strictEqual(b.length, 1);
     assert.ok(b[0].url.endsWith("/im.message.add.json"));
@@ -185,7 +185,7 @@ async function sinov(nom, fn) {
     muhit();
     const r = await post({ ...ASOS, joy: "Andijon", xodim: _ichki.YOQ, ism: "Yangi Xodim", lavozim: "Sotuvchi" });
     assert.strictEqual(r.statusCode, 200, r.body);
-    assert.deepStrictEqual(sheets()[0].tana.row.slice(3, 6), ["", "Yangi Xodim", "Sotuvchi"]);
+    assert.deepStrictEqual(sheets()[0].tana.rows[0].slice(3, 6), ["", "Yangi Xodim", "Sotuvchi"]);
     assert.ok(bitrix()[0].tana.MESSAGE.includes("ro'yxatda yo'q edi"));
     assert.strictEqual(tana(await post({ ...ASOS, xodim: _ichki.YOQ, ism: "", lavozim: "x" })).xato, "ism");
     assert.strictEqual(tana(await post({ ...ASOS, xodim: _ichki.YOQ, ism: "A", lavozim: "" })).xato, "lavozim");
@@ -198,8 +198,9 @@ async function sinov(nom, fn) {
     const s = sheets();
     assert.strictEqual(s.length, 1);
     assert.strictEqual(s[0].tana.sheet, "Texnika — Ofis");
-    assert.deepStrictEqual(s[0].tana.row.slice(1, 7), ["Ofis", "—", "", "Karimova Dilnoza", "Buxgalter", "— texnika yo'q —"]);
-    assert.strictEqual(s[0].tana.row.length, _ichki.ROYXAT_SARLAVHA.length);
+    assert.strictEqual(s[0].tana.rows.length, 1);
+    assert.deepStrictEqual(s[0].tana.rows[0].slice(1, 7), ["Ofis", "—", "", "Karimova Dilnoza", "Buxgalter", "— texnika yo'q —"]);
+    assert.strictEqual(s[0].tana.rows[0].length, _ichki.ROYXAT_SARLAVHA.length);
     assert.ok(bitrix()[0].tana.MESSAGE.includes("Korxona texnikasi: yo'q"));
   });
 
@@ -240,8 +241,8 @@ async function sinov(nom, fn) {
     muhit();
     const r = await post({ ...ASOS, ehtiyoj: [{ turi: "Skaner", soni: 2 }, { turi: "Boshqa", nomi: "Televizor", soni: 1, sabab: "reklama uchun" }] });
     assert.strictEqual(r.statusCode, 200, r.body);
-    const e = sheets().filter((c) => c.tana.sheet === "Texnika ehtiyoji").map((c) => c.tana.row.slice(6));
-    assert.deepStrictEqual(e, [["Skaner", 2, "", "Yo'q"], ["Boshqa: Televizor", 1, "reklama uchun", "Yo'q"]]);
+    const e = sheets()[0].tana.rows.slice(4).map((r) => [r[6], r[7], r[11], r[12]]);
+    assert.deepStrictEqual(e, [["Skaner", 2, "Kerak", ""], ["Boshqa: Televizor", 1, "Kerak", "reklama uchun"]]);
     const m = bitrix()[0].tana.MESSAGE;
     assert.ok(m.includes("• Skaner × 2\n") && m.includes("• Boshqa: Televizor × 1: reklama uchun"), m);
   });
@@ -254,20 +255,19 @@ async function sinov(nom, fn) {
     muhit();
     const r = await post({ ...ofis, texnika: [{ turi: "Monitor", soni: 2, olcham: "24, 27", holat: "yaxshi" }] });
     assert.strictEqual(r.statusCode, 200, r.body);
-    assert.deepStrictEqual(sheets()[0].tana.row.slice(6, 9), ["Monitor", 2, "24, 27"]);
+    assert.deepStrictEqual(sheets()[0].tana.rows[0].slice(6, 9), ["Monitor", 2, "24, 27"]);
     assert.ok(bitrix()[0].tana.MESSAGE.includes('Monitor × 2 (24, 27")'), bitrix()[0].tana.MESSAGE);
   });
 
-  await sinov("varaqlar: Call-markaz → Ofis, Ombor → Ombor; ehtiyoj — umumiy varaqda", async () => {
+  await sinov("varaqlar: Call-markaz → Ofis, Ombor → Ombor; yetishmaydi — o'sha varaqda, ketidan", async () => {
     muhit();
     await post({ ...ASOS, bolim: "call", joy: "", xodim: "Rahimova Zuhra", texnika: [{ turi: "Monitor", olcham: "24", holat: "yaxshi" }],
       ehtiyoj: [{ turi: "Noutbuk / kompyuter", soni: 1 }] });
     await post({ ...ASOS, bolim: "ombor", joy: "", xodim: "Qodirov Anvar", texnika: [{ turi: "Skaner", holat: "yaxshi" }], ehtiyoj: [] });
-    const v = sheets().map((c) => [c.tana.sheet, c.tana.row[1], c.tana.row[4]]);
+    const v = sheets().map((c) => [c.tana.sheet, ...c.tana.rows.map((r) => `${r[1]}|${r[4]}|${r[6]}|${r[11]}`)]);
     assert.deepStrictEqual(v, [
-      ["Texnika — Ofis", "Call-markaz", "Rahimova Zuhra"],
-      ["Texnika ehtiyoji", "Call-markaz", "Rahimova Zuhra"],
-      ["Texnika — Ombor", "Ombor", "Qodirov Anvar"],
+      ["Texnika — Ofis", "Call-markaz|Rahimova Zuhra|Monitor|Ishlaydi", "Call-markaz|Rahimova Zuhra|Noutbuk / kompyuter|Kerak"],
+      ["Texnika — Ombor", "Ombor|Qodirov Anvar|Skaner|Ishlaydi"],
     ]);
   });
 
@@ -277,7 +277,7 @@ async function sinov(nom, fn) {
     const r = await post(ASOS);
     assert.strictEqual(r.statusCode, 200, r.body);
     assert.strictEqual(sheets().length, 0, "umumiy jadvalga yozilmasin");
-    assert.strictEqual(chaqiruvlar.filter((c) => c.url === YANGI).length, 5);
+    assert.strictEqual(chaqiruvlar.filter((c) => c.url === YANGI).length, 1);
     assert.strictEqual(tana(await get({ holat: "1" })).jadval_alohida, true);
   });
 
@@ -297,7 +297,7 @@ async function sinov(nom, fn) {
     muhit();
     await post({ ...ASOS, bolim: "ofis", joy: "", xodim: "Karimova Dilnoza", ehtiyoj: [],
       texnika: [{ turi: "Monitor", olcham: "24", model: "=HYPERLINK(\"x\")", seriya: "+998", holat: "yaxshi", izoh: "[url=http://x]y[/url]" }] });
-    const row = sheets()[0].tana.row;
+    const row = sheets()[0].tana.rows[0];
     assert.strictEqual(row[9], "'=HYPERLINK(\"x\")");
     assert.strictEqual(row[10], "'+998");
     const m = bitrix()[0].tana.MESSAGE;
@@ -312,7 +312,7 @@ async function sinov(nom, fn) {
     assert.strictEqual(tana(r).jadval, "qisman");
     const b = bitrix();
     assert.strictEqual(b.length, 2);
-    assert.ok(b[1].tana.MESSAGE.includes("5 ta qator Google jadvalga yozilmadi"));
+    assert.ok(b[1].tana.MESSAGE.includes('Google jadvalga ("Texnika — Do\'kon") yozilmadi'), b[1].tana.MESSAGE);
   });
 
   await sinov("Jadval ham, Bitrix ham xato — 502 (odam qayta yuboradi), sir logga chiqmaydi", async () => {
@@ -339,24 +339,6 @@ async function sinov(nom, fn) {
     assert.strictEqual(r.statusCode, 200);
     assert.deepStrictEqual(tana(r), { ok: true, jadval: "ochirilgan", bitrix: true });
     assert.strictEqual(sheets().length, 0);
-  });
-
-  await sinov("Jadval varag'i birinchi qator bilan yaratiladi, qolganlari keyin", async () => {
-    muhit();
-    let ochiq = 0, birinchiTugadi = false, xato = false;
-    sheetsJavob = async (url, opts) => {
-      const t = JSON.parse(opts.body);
-      if (t.sheet === "Texnika — Do'kon") {
-        if (ochiq === 0 && !birinchiTugadi && t.row[6] !== "Konditsioner") xato = true;
-        ochiq++;
-        await new Promise((r) => setTimeout(r, 20));
-        ochiq--;
-        birinchiTugadi = true;
-      }
-      return { ok: false, status: 302 };
-    };
-    await post(ASOS);
-    assert.ok(!xato, "varaqning birinchi qatori boshqalardan oldin yozilishi kerak");
   });
 
   console.log(process.exitCode ? `\n${otdi} ta sinov o'tdi, qolganlari YIQILDI` : `Texnika formasi to'g'ri ✓  (${otdi} sinov)`);

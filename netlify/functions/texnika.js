@@ -2,9 +2,9 @@ const crypto = require("crypto");
 const fetch = require("node-fetch");
 
 /* Texnika ro'yxati formasi (/texnika/) — xodim korxona bergan texnikani va
-   ishiga yetishmayotgan texnikani kiritadi. Javob Google Sheets'ga (texnika —
-   har bo'limning o'z varag'iga, har texnika alohida qator; ehtiyoj — "Texnika
-   ehtiyoji" varag'iga) va xulosa Bitrix24'da shaxsiy xabar bo'lib boradi.
+   ishiga yetishmayotgan texnikani kiritadi. Javob Google Sheets'ga — har
+   bo'limning o'z varag'iga: har texnika alohida qator, ketidan yetishmayotgan
+   texnika ("Holati" = Kerak) — va xulosa Bitrix24'da shaxsiy xabar bo'lib boradi.
    Jadval: TEXNIKA_SHEETS_WEBHOOK (texnika uchun alohida jadval), bo'lmasa —
    umumiy SHEETS_WEBHOOK.
 
@@ -38,10 +38,8 @@ const ROYXAT_SARLAVHA = [
   "Sana-vaqt", "Bo'lim", "Joy", "Tabel №", "Xodim", "Lavozim",
   "Texnika", "Soni", "Ekran o'lchami", "Model", "Seriya / inventar №", "Holati", "Izoh",
 ];
-const EHTIYOJ_SARLAVHA = [
-  "Sana-vaqt", "Bo'lim", "Joy", "Tabel №", "Xodim", "Lavozim",
-  "Kerakli texnika", "Soni", "Nima uchun", "Shoshilinch",
-];
+// Yetishmayotgan texnika o'sha varaqqa, texnikalar ketidan (user 2026-10-10)
+const KERAK = "Kerak", KERAK_SHOSH = "Kerak — shoshilinch";
 // Har bo'limning texnikasi o'z varag'ida (user 2026-10-09). Texnika ro'yxati
 // bir xil bo'limlar bitta varaqda: Call-markaz → Ofis, Inventarizator → Ombor
 // (ro'yxat faylida "varaq" bilan almashadi).
@@ -208,14 +206,16 @@ function tekshir(d, royxat) {
 
 /* ---------------- yozuvlar ---------------- */
 
+// Bitta formaning barcha qatorlari: avval texnika, ketidan yetishmayotgani
 function qatorlar(j, sana) {
   const bosh = [sana, j.bolim, j.joy || "—", j.tabel || "", xavfsiz(j.ism), xavfsiz(j.lavozim)];
   const royxat = j.texnikaYoq
     ? [[...bosh, "— texnika yo'q —", "", "", "", "", "", ""]]
     : j.texnika.map((t) => [...bosh, t.turi, t.soni, xavfsiz(t.olcham), xavfsiz(t.model), xavfsiz(t.seriya),
       t.holat, xavfsiz(t.izoh)]);
-  const ehtiyoj = j.ehtiyoj.map((e) => [...bosh, xavfsiz(e.turi), e.soni, xavfsiz(e.sabab), e.shoshilinch ? "Ha" : "Yo'q"]);
-  return { royxat, ehtiyoj };
+  const ehtiyoj = j.ehtiyoj.map((e) => [...bosh, xavfsiz(e.turi), e.soni, "", "", "",
+    e.shoshilinch ? KERAK_SHOSH : KERAK, xavfsiz(e.sabab)]);
+  return [...royxat, ...ehtiyoj];
 }
 
 function bitrixMatni(j, izoh) {
@@ -262,14 +262,16 @@ async function vaqtBilan(muddatMs, ish) {
 }
 
 // "yozildi" | "kutilmoqda" (vaqt tugadi — Apps Script odatda baribir yozadi) | "xato ..."
-async function jadvalga(url, varaq, sarlavha, qator, muddatMs) {
+// Ulagich (tools/texnika_apps_script.gs) "rows" ni bitta blok qilib, qulf
+// ostida yozadi — bir formaning qatorlari tartib bilan, boshqasi aralashmaydi
+async function jadvalga(url, varaq, sarlavha, qatorlar_, muddatMs) {
   try {
     return await vaqtBilan(muddatMs, async (signal) => {
       const r = await fetch(url, {
         method: "POST",
         redirect: "manual",          // Apps Script qatorni yozib 302 qaytaradi
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sheet: varaq, headers: sarlavha, row: qator }),
+        body: JSON.stringify({ sheet: varaq, headers: sarlavha, rows: qatorlar_ }),
         signal,
       });
       return (r.ok || [301, 302, 303].includes(r.status)) ? "yozildi" : `xato ${r.status}`;
@@ -277,16 +279,6 @@ async function jadvalga(url, varaq, sarlavha, qator, muddatMs) {
   } catch (e) {
     return e && e.name === "AbortError" ? "kutilmoqda" : "xato";
   }
-}
-
-// Ulagich bitta so'rovda bitta qator yozadi. Varaq hali yo'q bo'lsa
-// parallel so'rovlar uni bir necha marta yaratmoqchi bo'lib xato beradi —
-// shuning uchun har varaqning birinchi qatori alohida, qolgani parallel.
-async function varaqqa(url, varaq, sarlavha, qatorlar_, muddatMs) {
-  if (!qatorlar_.length) return [];
-  const birinchi = await jadvalga(url, varaq, sarlavha, qatorlar_[0], muddatMs);
-  const qolgan = await Promise.all(qatorlar_.slice(1).map((q) => jadvalga(url, varaq, sarlavha, q, muddatMs)));
-  return [birinchi, ...qolgan];
 }
 
 async function bitrixga(webhook, dialog, matn, muddatMs) {
@@ -383,32 +375,28 @@ exports.handler = async (event, context) => {
       return javob(500, { xato: "server" });
     }
 
-    /* Google Sheets (ikki varaq) va Bitrix24 parallel ketadi — Netlify
-       funksiyasi 10 soniyada to'xtatiladi. Bitrix xabarida to'liq ro'yxat
-       bor: jadval xato bersa ham ma'lumot yo'qolmaydi. */
-    const { royxat, ehtiyoj } = qatorlar(j, toshkentVaqti(Date.now()));
+    /* Google Sheets (bo'lim varag'iga, bitta so'rov) va Bitrix24 parallel
+       ketadi — Netlify funksiyasi 10 soniyada to'xtatiladi. Bitrix xabarida
+       to'liq ro'yxat bor: jadval xato bersa ham ma'lumot yo'qolmaydi. */
     const qoldi = context && typeof context.getRemainingTimeInMillis === "function"
       ? context.getRemainingTimeInMillis() : 10000 - (Date.now() - boshi);
-    const muddat = Math.max(1000, Math.min(3000, (qoldi - 2500) / 2));
-    const jadvalIsh = !sheetsUrl ? Promise.resolve([]) : Promise.all([
-      varaqqa(sheetsUrl, j.varaq, ROYXAT_SARLAVHA, royxat, muddat),
-      varaqqa(sheetsUrl, process.env.TEXNIKA_EHTIYOJ_TAB || "Texnika ehtiyoji", EHTIYOJ_SARLAVHA, ehtiyoj, muddat),
-    ]).then(([a, b]) => [...a, ...b]);
+    const muddat = Math.max(1000, Math.min(6000, qoldi - 2500));
+    const jadvalIsh = !sheetsUrl ? Promise.resolve("ochirilgan")
+      : jadvalga(sheetsUrl, j.varaq, ROYXAT_SARLAVHA, qatorlar(j, toshkentVaqti(Date.now())), muddat);
     const bitrixIsh = !webhook ? Promise.resolve(false)
       : bitrixga(webhook, dialog, bitrixMatni(j), 3000).then(() => true, (e) => {
         console.error("Texnika Bitrix xato:", tozala(e));
         return false;
       });
-    const [natijalar, bitrixOk] = await Promise.all([jadvalIsh, bitrixIsh]);
+    const [jadval, bitrixOk] = await Promise.all([jadvalIsh, bitrixIsh]);
 
-    const xatoQator = natijalar.filter((s) => s.startsWith("xato")).length;
-    const jadvalOk = Boolean(sheetsUrl) && xatoQator === 0;
-    if (xatoQator) {
-      console.error(`Texnika Sheets: ${xatoQator}/${natijalar.length} qator yozilmadi`);
+    const jadvalOk = Boolean(sheetsUrl) && !jadval.startsWith("xato");
+    if (sheetsUrl && !jadvalOk) {
+      console.error(`Texnika Sheets: yozilmadi (${jadval})`);
       if (bitrixOk) {
         try {
-          await bitrixga(webhook, dialog, `⚠️ ${bb(j.ism)}: ${xatoQator} ta qator Google jadvalga `
-            + "yozilmadi — yuqoridagi xabardan qo'lda kiriting.", 1500);
+          await bitrixga(webhook, dialog, `⚠️ ${bb(j.ism)}: Google jadvalga ("${bb(j.varaq)}") yozilmadi — `
+            + "yuqoridagi xabardan qo'lda kiriting.", 1500);
         } catch (e) {
           console.error("Texnika Bitrix ogohlantirish xato:", tozala(e));
         }
@@ -425,7 +413,7 @@ exports.handler = async (event, context) => {
 
 // Sinovlar va shifrlash vositasi uchun
 exports._ichki = {
-  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, YOQ_HOLAT, MAX_TEXNIKA, OLCHAMLI, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
+  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, YOQ_HOLAT, MAX_TEXNIKA, OLCHAMLI, ROYXAT_SARLAVHA, KERAK, KERAK_SHOSH,
   VARAQ_ZAXIRA, varaqNomi,
   shifrla, ochish, havolaKodi, kodTogri, tekshir, qatorlar, bitrixMatni, xavfsiz,
 };
