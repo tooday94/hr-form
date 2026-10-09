@@ -139,10 +139,7 @@
       background:#fff; font-size:13.5px;
     }
 
-    .batafsil-tugma{
-      background:none; border:0; padding:9px 0 1px;
-      color:var(--pushti); font-size:13.5px; font-weight:600;
-    }
+    .ikki{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
 
     .shosh{
       margin-top:8px; padding:8px 12px;
@@ -528,13 +525,14 @@
       olcham = el("div", { sinf: "olcham" }, [el("span", { sinf: "yorliq", style: "margin-top:0", matn: "Ekran o'lchami (dyuym)" }), tez, oi]);
     }
 
-    var batafsil = el("div", { hidden: "" }, [
-      el("input", { sinf: "kirit", "data-k": "model", maxlength: "80", placeholder: "Brend / model" }),
-      el("input", { sinf: "kirit", "data-k": "seriya", maxlength: "120", autocapitalize: "characters", placeholder: "Seriya raqami" }),
+    // Model, seriya, izoh — doim ko'rinib turadi (ixtiyoriy, lekin ko'zdan qochmasin)
+    var batafsil = el("div", {}, [
+      el("div", { sinf: "ikki" }, [
+        el("input", { sinf: "kirit", "data-k": "model", maxlength: "80", placeholder: "Brend / model" }),
+        el("input", { sinf: "kirit", "data-k": "seriya", maxlength: "120", autocapitalize: "characters", placeholder: "Seriya raqami" })
+      ]),
       el("input", { sinf: "kirit", "data-k": "izoh", maxlength: "200", placeholder: "Izoh (masalan: 1 tasi ishlamaydi)" })
     ]);
-    var bTugma = el("button", { type: "button", sinf: "batafsil-tugma", matn: "＋ Model, seriya raqami" });
-    bTugma.addEventListener("click", function(){ batafsil.hidden = false; bTugma.hidden = true; });
 
     var yoq = el("div", { sinf: "yoq-belgi", matn: "❌ Filialda yo'q", hidden: "" });
 
@@ -545,8 +543,7 @@
       yoq.hidden = !nol;
       holatlar.hidden = nol;
       if(olcham) olcham.hidden = nol;
-      if(nol){ batafsil.hidden = true; bTugma.hidden = true; }
-      else if(batafsil.hidden) bTugma.hidden = false;
+      batafsil.hidden = nol;
     }
 
     q.appendChild(el("div", { sinf: "qator-bosh" }, [
@@ -557,7 +554,6 @@
     q.appendChild(yoq);
     q.appendChild(holatlar);
     if(olcham) q.appendChild(olcham);
-    q.appendChild(bTugma);
     q.appendChild(batafsil);
     return q;
   }
