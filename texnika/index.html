@@ -151,6 +151,10 @@
       color:#555;
       margin:0 0 10px;
     }
+    .karta .sarlavha.standart{
+      font-size:16px;
+      color:#111;
+    }
     .karta .ochir{
       position:absolute;
       top:8px;
@@ -339,7 +343,7 @@
 
   var API = window.location.origin + "/.netlify/functions/texnika";
   var YOQ = "__yoq__";
-  var MAX_TEXNIKA = 15, MAX_EHTIYOJ = 8;
+  var MAX_TEXNIKA = 25, MAX_EHTIYOJ = 8;
   var kod = new URLSearchParams(window.location.search).get("kod") || "";
 
   var forma = document.getElementById("forma");
@@ -419,14 +423,16 @@
   var MATNLAR = {
     dokon: {
       t_sarlavha: "Filialdagi korxona texnikasi",
-      t_izoh: "Har bir turni alohida qo'shing, bir xil texnika bir nechta bo'lsa — sonini yozing. Seriya yoki inventar raqami texnikaning yorlig'ida bo'ladi — bo'lmasa bo'sh qoldiring.",
+      t_izoh: "Filialda bo'lishi shart texnikalar oldindan qo'shilgan: har biri uchun nechta borligini va holatini belgilang, yo'q bo'lsa — 0 yozing. Seriya yoki inventar raqami yorliqda bo'ladi — bo'lmasa bo'sh qoldiring.",
       t_yoq: "Filialda korxona texnikasi yo'q",
+      texnikaQosh: "+ Yana texnika qo'shish",
       e_sarlavha: "Filialga qanday texnika yetishmaydi?"
     },
     boshqa: {
       t_sarlavha: "Korxona sizga bergan texnika",
       t_izoh: "Har bir turni alohida qo'shing. Seriya yoki inventar raqami texnikaning orqasidagi yorliqda bo'ladi — bo'lmasa bo'sh qoldiring.",
       t_yoq: "Menga korxona texnikasi berilmagan",
+      texnikaQosh: "+ Texnika qo'shish",
       e_sarlavha: "Ishingiz uchun qanday texnika yetishmaydi?"
     }
   };
@@ -448,7 +454,15 @@
     joyOzgardi();
   }
 
+  function dokonmi(){ var b = bolimOl(); return Boolean(b && b.joylar); }
+  // Do'kon standarti: bo'lim ro'yxatidagi har texnika filialda kamida 1 ta
+  function standartlar(){
+    return dokonmi() ? (bolimOl().turlar || []).filter(function(t){ return t !== "Boshqa"; }) : [];
+  }
+
   function joyOzgardi(){
+    texnikalarEl.innerHTML = "";
+    ehtiyojlarEl.innerHTML = "";
     var royxat = xodimlarOl();
     var mXodim = document.getElementById("m_xodim");
     var x = document.getElementById("xodimlar");
@@ -467,7 +481,10 @@
     document.getElementById("yoqMaydonlar").hidden = x !== YOQ;
     var ochiq = Boolean(x) && !document.getElementById("m_xodim").hidden;
     document.getElementById("qolgani").hidden = !ochiq;
-    if(ochiq && !texnikalarEl.children.length && !texnikaYoq.checked) texnikaQosh();
+    if(ochiq && !texnikalarEl.children.length && !texnikaYoq.checked){
+      if(dokonmi()) standartlar().forEach(function(t){ texnikaQosh(t); });
+      else texnikaQosh();
+    }
     xatoKorsat("");
   }
 
@@ -495,38 +512,59 @@
     return m;
   }
 
+  // Standart kartalar o'z nomi bilan qoladi, qolganlari raqamlanadi
   function raqamlash(ildiz, nom){
-    Array.prototype.forEach.call(ildiz.children, function(k, i){
-      k.querySelector(".sarlavha").textContent = nom + " " + (i + 1);
+    var n = 0;
+    Array.prototype.forEach.call(ildiz.children, function(k){
+      if(k.getAttribute("data-standart")) return;
+      k.querySelector(".sarlavha").textContent = nom + " " + (++n);
     });
   }
+  function texnikaNomi(){ return dokonmi() ? "Qo'shimcha texnika" : "Texnika"; }
 
-  function texnikaQosh(){
+  // standartTur berilsa — do'kon standarti: turi qat'iy, kartani o'chirib
+  // bo'lmaydi, soni 0 = filialda yo'q (model/seriya/holat yashiriladi)
+  function texnikaQosh(standartTur){
+    if(typeof standartTur !== "string") standartTur = "";      // tugma bosilganda hodisa keladi
     if(texnikalarEl.children.length >= MAX_TEXNIKA) return;
     var id = "h" + (++kartaSoni);
-    var tur = turSelect();
+    var tur = standartTur
+      ? el("input", { type: "hidden", "data-k": "turi", value: standartTur })
+      : turSelect();
     var izohM = maydon("Izoh (ixtiyoriy)", el("input", { "data-k": "izoh", maxlength: "200" }));
-    tur.addEventListener("change", function(){
-      izohM.querySelector("label").textContent = tur.value === "Boshqa" ? "Qanday texnika?" : "Izoh (ixtiyoriy)";
-    });
+    if(!standartTur){
+      tur.addEventListener("change", function(){
+        izohM.querySelector("label").textContent = tur.value === "Boshqa" ? "Qanday texnika?" : "Izoh (ixtiyoriy)";
+      });
+    }
     var holat = el("div", { sinf: "holatlar" }, [
       radio(id, "yaxshi", "Ishlaydi"), radio(id, "tamir", "Ta'mir kerak"), radio(id, "buzuq", "Ishlamaydi")
     ]);
     holat.querySelector('input[value="yaxshi"]').checked = true;
-    var ochir = el("button", { type: "button", sinf: "ochir", "aria-label": "O'chirish", matn: "✕" });
-    var k = el("div", { sinf: "karta", "data-holat": id }, [
-      el("p", { sinf: "sarlavha" }), ochir,
-      maydon("Turi", tur),
-      maydon("Soni", el("input", { "data-k": "soni", type: "number", inputmode: "numeric", min: "1", max: "50", value: "1" })),
+    var soni = el("input", { "data-k": "soni", type: "number", inputmode: "numeric",
+                             min: standartTur ? "0" : "1", max: "50", value: "1" });
+    var batafsil = el("div", {}, [
       maydon("Brend / model", el("input", { "data-k": "model", maxlength: "80", placeholder: "masalan: Samsung, HP" })),
       maydon("Seriya yoki inventar raqami", el("input", { "data-k": "seriya", maxlength: "120", autocapitalize: "characters" }),
              "Bir nechta bo'lsa — vergul bilan yozing"),
-      el("div", { sinf: "maydon" }, [el("label", { matn: "Holati" }), holat]),
+      el("div", { sinf: "maydon" }, [el("label", { matn: "Holati" }), holat])
+    ]);
+    var ochir = standartTur ? null : el("button", { type: "button", sinf: "ochir", "aria-label": "O'chirish", matn: "✕" });
+    var k = el("div", { sinf: "karta", "data-holat": id }, [
+      el("p", { sinf: "sarlavha" + (standartTur ? " standart" : ""), matn: standartTur }), ochir,
+      standartTur ? tur : maydon("Turi", tur),
+      maydon(standartTur ? "Filialda nechta bor?" : "Soni", soni, standartTur ? "Yo'q bo'lsa — 0 yozing" : ""),
+      batafsil,
       izohM
     ]);
-    ochir.addEventListener("click", function(){ k.remove(); raqamlash(texnikalarEl, "Texnika"); tugmalar(); });
+    if(standartTur){
+      k.setAttribute("data-standart", "1");
+      soni.addEventListener("input", function(){ batafsil.hidden = soni.value.trim() !== "" && Number(soni.value) === 0; });
+    } else {
+      ochir.addEventListener("click", function(){ k.remove(); raqamlash(texnikalarEl, texnikaNomi()); tugmalar(); });
+    }
     texnikalarEl.appendChild(k);
-    raqamlash(texnikalarEl, "Texnika");
+    raqamlash(texnikalarEl, texnikaNomi());
     tugmalar();
   }
 
@@ -548,6 +586,9 @@
   }
 
   function tugmalar(){
+    // Do'konda standart ro'yxat bor — "texnika yo'q" belgisi kerak emas
+    texnikaYoq.closest("label").hidden = dokonmi();
+    if(dokonmi()) texnikaYoq.checked = false;
     document.getElementById("texnikaQosh").hidden = texnikaYoq.checked || texnikalarEl.children.length >= MAX_TEXNIKA;
     document.getElementById("ehtiyojQosh").hidden = ehtiyojlarEl.children.length >= MAX_EHTIYOJ;
     texnikalarEl.hidden = texnikaYoq.checked;
@@ -585,7 +626,8 @@
     texnika: ["Kamida bitta texnika qo'shing yoki «Menga korxona texnikasi berilmagan» ni belgilang.", "m_texnika"],
     texnika_turi: ["Texnika turini tanlang."],
     texnika_holat: ["Texnika holatini tanlang."],
-    texnika_soni: ["Sonini 1 dan 50 gacha yozing."],
+    texnika_soni: ["Sonini butun son bilan yozing: 1–50 (filial standartidagi texnika yo'q bo'lsa — 0)."],
+    texnika_standart: ["Filialda bo'lishi shart texnikalar ro'yxatda turishi kerak. Sahifani yangilab, qaytadan to'ldiring.", "m_texnika"],
     texnika_boshqa: ["«Boshqa» uchun qanday texnika ekanini yozing."],
     ehtiyoj_turi: ["Qanday texnika kerakligini tanlang."],
     ehtiyoj_soni: ["Sonini 1 dan 50 gacha yozing."],
@@ -630,7 +672,8 @@
     if(!d.texnika_yoq){
       Array.prototype.forEach.call(texnikalarEl.children, function(k){
         d.texnika.push({
-          turi: qiymat(k, "turi"), soni: Number(qiymat(k, "soni")), model: qiymat(k, "model"), seriya: qiymat(k, "seriya"),
+          standart: Boolean(k.getAttribute("data-standart")),
+          turi: qiymat(k, "turi"), soni: qiymat(k, "soni") === "" ? null : Number(qiymat(k, "soni")), model: qiymat(k, "model"), seriya: qiymat(k, "seriya"),
           holat: tanlangan(k.getAttribute("data-holat"), k), izoh: qiymat(k, "izoh")
         });
       });
@@ -644,7 +687,7 @@
     return d;
   }
 
-  function butunSon(n){ return n >= 1 && n <= 50 && Math.floor(n) === n; }
+  function butunSon(n, eng){ eng = eng === undefined ? 1 : eng; return n >= eng && n <= 50 && Math.floor(n) === n; }
 
   // Server bilan bir xil tekshiruv — xato darhol, to'g'ri joyda ko'rinadi
   function oldindanTekshir(d){
@@ -656,7 +699,7 @@
     if(!d.texnika_yoq && !d.texnika.length) return ["texnika"];
     for(var i = 0; i < d.texnika.length; i++){
       if(!d.texnika[i].turi) return ["texnika_turi", i];
-      if(!butunSon(d.texnika[i].soni)) return ["texnika_soni", i];
+      if(!butunSon(d.texnika[i].soni, d.texnika[i].standart ? 0 : 1)) return ["texnika_soni", i];
       if(d.texnika[i].turi === "Boshqa" && !d.texnika[i].izoh) return ["texnika_boshqa", i];
     }
     for(var j = 0; j < d.ehtiyoj.length; j++){

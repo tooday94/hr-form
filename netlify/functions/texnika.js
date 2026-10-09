@@ -22,7 +22,11 @@ const turlarOl = (bolim) => {
   return [...new Set(t.filter((x) => typeof x === "string" && x && x !== BOSHQA)), BOSHQA];
 };
 const HOLATLAR = { yaxshi: "Ishlaydi", tamir: "Ta'mir kerak", buzuq: "Ishlamaydi" };
-const MAX_TEXNIKA = 15;
+// Do'kon standarti: bo'lim ro'yxatidagi har bir texnika filialda kamida 1 ta
+// bo'lishi kerak (user 2026-10-09). Forma ularni oldindan qo'yib beradi;
+// filialda yo'q bo'lsa soni 0 yoziladi.
+const YOQ_HOLAT = "Yo'q";
+const MAX_TEXNIKA = 25;
 const MAX_EHTIYOJ = 8;
 const MAX_SONI = 50;
 
@@ -134,8 +138,10 @@ function tekshir(d, royxat) {
     tabel = String(x.tabel || "");
   }
   const turlar = turlarOl(joy.bolim);
+  // Do'konda standart ro'yxat majburiy, "texnika yo'q" belgisi yo'q
+  const standart = Array.isArray(joy.bolim.joylar) ? turlar.filter((t) => t !== BOSHQA) : [];
 
-  const texnikaYoq = d.texnika_yoq === true;
+  const texnikaYoq = !standart.length && d.texnika_yoq === true;
   const xom = Array.isArray(d.texnika) ? d.texnika : [];
   if (!texnikaYoq && !xom.length) return { xato: "texnika" };
   if (xom.length > MAX_TEXNIKA) return { xato: "texnika_kop" };
@@ -144,16 +150,23 @@ function tekshir(d, royxat) {
     for (let i = 0; i < xom.length; i++) {
       const t = xom[i] || {};
       if (!turlar.includes(t.turi)) return { xato: "texnika_turi", qator: i };
-      const soni = t.soni === undefined || t.soni === "" ? 1 : Number(t.soni);
-      if (!Number.isInteger(soni) || soni < 1 || soni > MAX_SONI) return { xato: "texnika_soni", qator: i };
-      if (!Object.prototype.hasOwnProperty.call(HOLATLAR, t.holat)) return { xato: "texnika_holat", qator: i };
+      // berilmasa — 1; bo'sh/null — xato (jimgina 0 = "yo'q" bo'lib qolmasin)
+      const soni = t.soni === undefined ? 1 : (t.soni === null || t.soni === "" ? NaN : Number(t.soni));
+      const eng = standart.includes(t.turi) ? 0 : 1;      // 0 — filialda yo'q
+      if (!Number.isInteger(soni) || soni < eng || soni > MAX_SONI) return { xato: "texnika_soni", qator: i };
       const izoh = qisqa(t.izoh, 200);
       if (t.turi === BOSHQA && !izoh) return { xato: "texnika_boshqa", qator: i };
+      if (soni === 0) {
+        texnika.push({ turi: t.turi, soni, model: "", seriya: "", holat: YOQ_HOLAT, izoh });
+        continue;
+      }
+      if (!Object.prototype.hasOwnProperty.call(HOLATLAR, t.holat)) return { xato: "texnika_holat", qator: i };
       texnika.push({
         turi: t.turi, soni, model: qisqa(t.model, 80), seriya: qisqa(t.seriya, 120),
         holat: HOLATLAR[t.holat], izoh,
       });
     }
+    if (standart.some((tur) => !texnika.some((t) => t.turi === tur))) return { xato: "texnika_standart" };
   }
 
   const xomE = Array.isArray(d.ehtiyoj) ? d.ehtiyoj : [];
@@ -201,6 +214,10 @@ function bitrixMatni(j, izoh) {
     q.push(`Korxona texnikasi (${j.texnika.reduce((n, t) => n + t.soni, 0)} dona):`);
     j.texnika.forEach((t, i) => {
       const qism = [t.model, t.seriya ? `№ ${t.seriya}` : "", t.izoh].filter(Boolean).map(bb).join(", ");
+      if (t.soni === 0) {
+        q.push(`${i + 1}. ${t.turi} · ❌ Filialda yo'q${t.izoh ? " — " + bb(t.izoh) : ""}`);
+        return;
+      }
       q.push(`${i + 1}. ${t.turi}${t.soni > 1 ? ` × ${t.soni}` : ""}${qism ? " — " + qism : ""}`
         + ` · ${t.holat === "Ishlaydi" ? "✅" : "⚠️"} ${t.holat}`);
     });
@@ -386,6 +403,6 @@ exports.handler = async (event, context) => {
 
 // Sinovlar va shifrlash vositasi uchun
 exports._ichki = {
-  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
+  ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, YOQ_HOLAT, MAX_TEXNIKA, ROYXAT_SARLAVHA, EHTIYOJ_SARLAVHA,
   shifrla, ochish, havolaKodi, kodTogri, tekshir, qatorlar, bitrixMatni, xavfsiz,
 };
