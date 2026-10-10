@@ -130,6 +130,20 @@ async function sinov(nom, fn) {
     assert.deepStrictEqual(_ichki.turlarOl({ turlar: ["Boshqa", "A", "A", ""] }), ["A", "Boshqa"]);
   });
 
+  await sinov("holat&bitrix: vebxuk egasining ID'si yoki xato kodi, sirsiz", async () => {
+    muhit();
+    bitrixJavob = async () => ({ ok: true, status: 200, json: async () => ({ result: { ID: "79", NAME: "Feliza" } }) });
+    let r = await get({ holat: "1", bitrix: "1" });
+    assert.strictEqual(tana(r).bitrix_egasi, 79);
+    assert.ok(bitrix()[0].url.endsWith("/user.current.json"));
+    assert.ok(!r.body.includes("MAXFIY"));
+    bitrixJavob = async () => ({ ok: false, status: 401, json: async () => ({ error: "INVALID_CREDENTIALS" }) });
+    assert.strictEqual(tana(await get({ holat: "1", bitrix: "1" })).bitrix_egasi, "xato 401");
+    muhit();
+    assert.ok(!("bitrix_egasi" in tana(await get({ holat: "1" }))), "bitrix=1 so'ralmasa — Bitrix'ga murojaat yo'q");
+    assert.strictEqual(chaqiruvlar.length, 0);
+  });
+
   await sinov("GET kalit sozlanmagan — 503", async () => {
     muhit({ TEXNIKA_KALIT: null });
     assert.strictEqual((await get({ kod: KOD })).statusCode, 503);

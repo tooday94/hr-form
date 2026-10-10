@@ -333,7 +333,23 @@ exports.handler = async (event, context) => {
             xodimSoni = "ochilmadi";
           }
         }
+        // ?holat=1&bitrix=1 — vebxuk ishlayaptimi va kimniki (faqat ID, sirsiz)
+        let bitrixEgasi;
+        if (q.bitrix && webhook) {
+          try {
+            const asos = webhook.endsWith("/") ? webhook : webhook + "/";
+            bitrixEgasi = await vaqtBilan(4000, async (signal) => {
+              const r = await fetch(asos + "user.current.json", { method: "POST", signal,
+                headers: { "Content-Type": "application/json" }, body: "{}" });
+              const j = await r.json().catch(() => ({}));
+              return r.ok && j.result ? Number(j.result.ID) : `xato ${r.status}`;
+            });
+          } catch (e) {
+            bitrixEgasi = "xato";
+          }
+        }
         return javob(200, {
+          ...(bitrixEgasi !== undefined ? { bitrix_egasi: bitrixEgasi } : {}),
           kalit: Boolean(kalit), xodimlar: xodimSoni,
           jadval: Boolean(jadvalManzili()), jadval_alohida: Boolean(process.env.TEXNIKA_SHEETS_WEBHOOK),
           bitrix: Boolean(webhook),
