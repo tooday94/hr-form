@@ -48,6 +48,9 @@ const VARAQ_ZAXIRA = {
   ombor: "Texnika — Ombor", inventarizator: "Texnika — Ombor",
 };
 const varaqNomi = (b) => qisqa(b.varaq, 90) || VARAQ_ZAXIRA[b.kalit] || `Texnika — ${b.nom}`;
+// Bitrix vazifasi: forma yuborilgach xodimning ochiq vazifasi shu sarlavha
+// bo'yicha topilib "bajarildi" qilinadi (user 2026-10-10)
+const VAZIFA_SARLAVHA = "Texnika ro'yxatini to'ldiring";
 // Ro'yxatda yo'q xodim — ismini o'zi yozadi
 const YOQ = "__yoq__";
 
@@ -135,7 +138,7 @@ function tekshir(d, royxat) {
   const joy = xodimlar(royxat, d.bolim, d.joy);
   if (!joy) return { xato: d.bolim && !(royxat.bolimlar || []).some((x) => x.kalit === d.bolim) ? "bolim" : "joy" };
 
-  let ism, lavozim, tabel = "";
+  let ism, lavozim, tabel = "", bitrixId = 0;
   if (d.xodim === YOQ) {
     ism = qisqa(d.ism, 80);
     lavozim = qisqa(d.lavozim, 60);
@@ -146,6 +149,7 @@ function tekshir(d, royxat) {
     if (!x) return { xato: "xodim" };
     ({ ism, lavozim } = x);
     tabel = String(x.tabel || "");
+    bitrixId = Number(x.bitrix_id) || 0;
   }
   const turlar = turlarOl(joy.bolim);
   // Do'konda standart ro'yxat majburiy, "texnika yo'q" belgisi yo'q
@@ -198,7 +202,7 @@ function tekshir(d, royxat) {
 
   return {
     javob: {
-      bolim: joy.bolim.nom, varaq: varaqNomi(joy.bolim), joy: joy.joy, tabel, ism, lavozim,
+      bolim: joy.bolim.nom, varaq: varaqNomi(joy.bolim), joy: joy.joy, tabel, ism, lavozim, bitrixId,
       royxatdaYoq: d.xodim === YOQ, texnikaYoq, texnika, ehtiyoj,
     },
   };
@@ -281,21 +285,42 @@ async function jadvalga(url, varaq, sarlavha, qatorlar_, muddatMs) {
   }
 }
 
-async function bitrixga(webhook, dialog, matn, muddatMs) {
+async function bitrixSorov(webhook, usul, tana, muddatMs) {
   const asos = webhook.endsWith("/") ? webhook : webhook + "/";
   return vaqtBilan(muddatMs, async (signal) => {
-    const r = await fetch(asos + "im.message.add.json", {
+    const r = await fetch(asos + usul + ".json", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ DIALOG_ID: dialog, MESSAGE: matn }),
+      body: JSON.stringify(tana),
       signal,
     });
     const j = await r.json().catch(() => ({}));
     if (!r.ok || j.error) {
-      throw new Error(`Bitrix ${r.status}: ${j.error_description || j.error || "javob yo'q"}`);
+      throw new Error(`Bitrix ${usul} ${r.status}: ${j.error_description || j.error || "javob yo'q"}`);
     }
     return j.result;
   });
+}
+
+const bitrixga = (webhook, dialog, matn, muddatMs) =>
+  bitrixSorov(webhook, "im.message.add", { DIALOG_ID: dialog, MESSAGE: matn }, muddatMs);
+
+// Xodimning ochiq "Texnika ro'yxatini to'ldiring" vazifalari → bajarildi.
+// Qaytadi: yopilgan vazifalar ID'lari.
+async function vazifaniYop(webhook, userId, muddatMs) {
+  const sarlavha = String(process.env.TEXNIKA_VAZIFA_SARLAVHA || VAZIFA_SARLAVHA).trim();
+  const r = await bitrixSorov(webhook, "tasks.task.list", {
+    filter: { RESPONSIBLE_ID: userId, TITLE: sarlavha, "<STATUS": 5 },
+    select: ["ID", "TITLE", "STATUS"],
+  }, muddatMs);
+  const ochiq = ((r && r.tasks) || []).filter((t) => String(t.title || t.TITLE || "").trim() === sarlavha);
+  const yopildi = [];
+  for (const t of ochiq) {
+    const id = Number(t.id || t.ID);
+    await bitrixSorov(webhook, "tasks.task.complete", { taskId: id }, muddatMs);
+    yopildi.push(id);
+  }
+  return yopildi;
 }
 
 // Texnika uchun alohida jadval (user 2026-10-09: yangi jadval beradi);
@@ -404,7 +429,13 @@ exports.handler = async (event, context) => {
         console.error("Texnika Bitrix xato:", tozala(e));
         return false;
       });
-    const [jadval, bitrixOk] = await Promise.all([jadvalIsh, bitrixIsh]);
+    // Vazifa yopilmasa ham forma qabul qilinadi (faqat logga)
+    const vazifaIsh = !webhook || !j.bitrixId ? Promise.resolve([])
+      : vazifaniYop(webhook, j.bitrixId, 2500).catch((e) => {
+        console.error("Texnika vazifa xato:", tozala(e));
+        return null;
+      });
+    const [jadval, bitrixOk, vazifa] = await Promise.all([jadvalIsh, bitrixIsh, vazifaIsh]);
 
     const jadvalOk = Boolean(sheetsUrl) && !jadval.startsWith("xato");
     if (sheetsUrl && !jadvalOk) {
@@ -420,7 +451,10 @@ exports.handler = async (event, context) => {
     }
 
     if (!jadvalOk && !bitrixOk) return javob(502, { xato: "yuborilmadi" });
-    return javob(200, { ok: true, jadval: jadvalOk ? "yozildi" : (sheetsUrl ? "qisman" : "ochirilgan"), bitrix: bitrixOk });
+    return javob(200, {
+      ok: true, jadval: jadvalOk ? "yozildi" : (sheetsUrl ? "qisman" : "ochirilgan"), bitrix: bitrixOk,
+      vazifa: vazifa === null ? "xato" : vazifa.length,
+    });
   } catch (e) {
     console.error("Texnika xato:", tozala(e));
     return javob(500, { xato: "server" });
@@ -430,6 +464,6 @@ exports.handler = async (event, context) => {
 // Sinovlar va shifrlash vositasi uchun
 exports._ichki = {
   ZAXIRA_TURLAR, BOSHQA, turlarOl, HOLATLAR, YOQ, YOQ_HOLAT, MAX_TEXNIKA, OLCHAMLI, ROYXAT_SARLAVHA, KERAK, KERAK_SHOSH,
-  VARAQ_ZAXIRA, varaqNomi,
+  VARAQ_ZAXIRA, varaqNomi, VAZIFA_SARLAVHA,
   shifrla, ochish, havolaKodi, kodTogri, tekshir, qatorlar, bitrixMatni, xavfsiz,
 };

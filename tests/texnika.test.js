@@ -27,7 +27,7 @@ const ROYXAT = {
   bolimlar: [
     { kalit: "dokon", nom: "Do'kon", turlar: ["Antikraja", "Konditsioner", "Chek printeri", "Skaner"], joylar: [
       { nom: "Chilonzor", xodimlar: [
-        { tabel: "901", ism: "Toshmatov Sardor Akmal o'g'li", lavozim: "Filial rahbari" },
+        { tabel: "901", ism: "Toshmatov Sardor Akmal o'g'li", lavozim: "Filial rahbari", bitrix_id: 501 },
         { tabel: "902", ism: "Aliyeva Malika Rustam qizi", lavozim: "Kassir" },
       ] },
       { nom: "Andijon", xodimlar: [] },
@@ -161,7 +161,7 @@ async function sinov(nom, fn) {
     muhit();
     const r = await post(ASOS);
     assert.strictEqual(r.statusCode, 200, r.body);
-    assert.deepStrictEqual(tana(r), { ok: true, jadval: "yozildi", bitrix: true });
+    assert.deepStrictEqual(tana(r), { ok: true, jadval: "yozildi", bitrix: true, vazifa: 0 });
     const s = sheets();
     assert.strictEqual(s.length, 1, "jadvalga bitta so'rov");
     assert.strictEqual(s[0].tana.sheet, "Texnika — Do'kon");
@@ -295,6 +295,45 @@ async function sinov(nom, fn) {
     assert.strictEqual(tana(await get({ holat: "1" })).jadval_alohida, true);
   });
 
+  await sinov("Vazifa: forma yuborilgach xodimning ochiq vazifasi «bajarildi»", async () => {
+    muhit();
+    const SARLAVHA = _ichki.VAZIFA_SARLAVHA;
+    bitrixJavob = async (url) => {
+      const usul = url.split("/").pop();
+      if (usul === "tasks.task.list.json") {
+        return { ok: true, status: 200, json: async () => ({ result: { tasks: [
+          { id: "11", title: SARLAVHA, status: "2" }, { id: "12", title: "Boshqa vazifa", status: "2" }] } }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ result: true }) };
+    };
+    const r = await post({ ...ASOS, xodim: "Toshmatov Sardor Akmal o'g'li" });
+    assert.strictEqual(r.statusCode, 200, r.body);
+    assert.strictEqual(tana(r).vazifa, 1);
+    const royxat = bitrix().find((c) => c.url.endsWith("/tasks.task.list.json"));
+    assert.deepStrictEqual(royxat.tana.filter, { RESPONSIBLE_ID: 501, TITLE: SARLAVHA, "<STATUS": 5 });
+    const yop = bitrix().filter((c) => c.url.endsWith("/tasks.task.complete.json")).map((c) => c.tana.taskId);
+    assert.deepStrictEqual(yop, [11], "faqat shu sarlavhali vazifa yopiladi");
+  });
+
+  await sinov("Vazifa: ochiq vazifa yo'q / Bitrix'da ID yo'q / xato — forma baribir qabul qilinadi", async () => {
+    muhit();
+    bitrixJavob = async (url) => ({ ok: true, status: 200, json: async () => ({ result: url.includes("tasks.task.list") ? { tasks: [] } : true }) });
+    let r = await post({ ...ASOS, xodim: "Toshmatov Sardor Akmal o'g'li" });
+    assert.strictEqual(tana(r).vazifa, 0);
+    assert.ok(!bitrix().some((c) => c.url.includes("tasks.task.complete")));
+    muhit();
+    r = await post({ ...ASOS, xodim: _ichki.YOQ, ism: "Yangi", lavozim: "Sotuvchi" });
+    assert.ok(!bitrix().some((c) => c.url.includes("tasks.")), "Bitrix ID'siz xodimda vazifa qidirilmaydi");
+    muhit();
+    bitrixJavob = async (url) => url.includes("tasks.")
+      ? { ok: false, status: 403, json: async () => ({ error: "ACCESS_DENIED" }) }
+      : { ok: true, status: 200, json: async () => ({ result: 1 }) };
+    r = await post({ ...ASOS, xodim: "Toshmatov Sardor Akmal o'g'li" });
+    assert.strictEqual(r.statusCode, 200);
+    assert.strictEqual(tana(r).vazifa, "xato");
+    assert.strictEqual(tana(r).bitrix, true);
+  });
+
   await sinov("POST: noto'g'ri kod — 403, hech narsa yuborilmaydi", async () => {
     muhit();
     assert.strictEqual((await post({ ...ASOS, kod: "boshqa" })).statusCode, 403);
@@ -351,7 +390,7 @@ async function sinov(nom, fn) {
     muhit({ SHEETS_WEBHOOK: null });
     const r = await post(ASOS);
     assert.strictEqual(r.statusCode, 200);
-    assert.deepStrictEqual(tana(r), { ok: true, jadval: "ochirilgan", bitrix: true });
+    assert.deepStrictEqual(tana(r), { ok: true, jadval: "ochirilgan", bitrix: true, vazifa: 0 });
     assert.strictEqual(sheets().length, 0);
   });
 
